@@ -1,0 +1,115 @@
+import { useForm } from "@tanstack/react-form";
+import type { ReactNode } from "react";
+import { getZodFieldError } from "@/shared/lib";
+import { type AppVo, formatCodegenType } from "@/shared/schemas";
+import { Button, TextArea, TextField } from "@/shared/ui";
+import {
+  type AppEditFormValues,
+  appCoverInputSchema,
+  appEditFormSchema,
+} from "./app-edit-form-schema";
+
+export type AppEditFormProps = {
+  readonly app: AppVo;
+  readonly admin: boolean;
+  readonly submitting: boolean;
+  readonly onSubmit: (values: AppEditFormValues) => void;
+  readonly onReset: () => void;
+  readonly onOpenChat: () => void;
+};
+
+export function AppEditForm({
+  app,
+  admin,
+  submitting,
+  onSubmit,
+  onReset,
+  onOpenChat,
+}: AppEditFormProps): ReactNode {
+  const form = useForm({
+    defaultValues: appEditFormSchema.parse({
+      appName: app.appName,
+      appCover: app.appCover ?? "",
+      priority: app.priority ?? 0,
+    }),
+    validators: { onSubmit: appEditFormSchema },
+    onSubmit: ({ value }) => onSubmit(appEditFormSchema.parse(value)),
+  });
+
+  return (
+    <form
+      className="border-border bg-card grid gap-5 rounded-2xl border p-5 shadow-sm"
+      onSubmit={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void form.handleSubmit();
+      }}
+    >
+      <form.Field name="appName">
+        {(field) => (
+          <TextField
+            label="App Name"
+            name={field.name}
+            value={field.state.value}
+            onBlur={field.handleBlur}
+            onChange={(event) => field.handleChange(event.target.value)}
+            errorMessage={getZodFieldError(
+              appEditFormSchema.shape.appName,
+              field.state.value,
+              field.state.meta.isTouched,
+            )}
+          />
+        )}
+      </form.Field>
+      {admin ? (
+        <>
+          <form.Field name="appCover">
+            {(field) => (
+              <TextField
+                label="App Cover URL"
+                name={field.name}
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                hint="Recommended size: 400 x 300."
+                errorMessage={getZodFieldError(
+                  appCoverInputSchema,
+                  field.state.value,
+                  field.state.meta.isTouched,
+                )}
+              />
+            )}
+          </form.Field>
+          <form.Field name="priority">
+            {(field) => (
+              <TextField
+                label="Priority"
+                name={field.name}
+                type="number"
+                min={0}
+                max={99}
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(Number(event.target.value))}
+                hint="Set to 99 for awesome app placement."
+              />
+            )}
+          </form.Field>
+        </>
+      ) : null}
+      <TextArea label="Initial Prompt" value={app.initPrompt} disabled />
+      <TextField label="Generation Type" value={formatCodegenType(app.codegenType)} disabled />
+      <div className="flex flex-wrap gap-3 pt-2">
+        <Button type="submit" disabled={submitting} isLoading={submitting}>
+          Save Changes
+        </Button>
+        <Button type="button" variant="outline" onClick={onReset}>
+          Reset
+        </Button>
+        <Button type="button" variant="ghost" onClick={onOpenChat}>
+          Go to Chat
+        </Button>
+      </div>
+    </form>
+  );
+}

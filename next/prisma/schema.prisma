@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // provider = "mysql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum CodegenType {
+  VANILLA_HTML
+  MULTI_FILES
+  VITE_PROJECT
+}
+
+enum ChatMessageType {
+  USER
+  AI
+}
+
+model User {
+  id           BigInt   @id @default(autoincrement())
+  userAccount  String   @unique @map("user_account") @db.VarChar(256)
+  userPassword String   @map("user_password") @db.VarChar(512)
+  username     String?  @map("username") @db.VarChar(256)
+  userAvatar   String?  @map("user_avatar") @db.VarChar(1024)
+  userProfile  String?  @map("user_profile") @db.VarChar(512)
+  userRole     UserRole @default(USER) @map("user_role")
+  editTime     DateTime @default(now()) @map("edit_time")
+  createTime   DateTime @default(now()) @map("create_time")
+  updateTime   DateTime @updatedAt @map("update_time")
+  isDelete     Boolean  @default(false) @map("is_delete")
+
+  apps          App[]
+  chatHistories ChatHistory[]
+
+  @@index([username], map: "idx_users_username")
+  @@map("users")
+}
+
+model App {
+  id          BigInt      @id @default(autoincrement())
+  appName     String?     @map("app_name") @db.VarChar(256)
+  appCover    String?     @map("app_cover") @db.VarChar(512)
+  initPrompt  String?     @map("init_prompt") @db.Text
+  codegenType CodegenType @default(MULTI_FILES) @map("codegen_type")
+  deployKey   String?     @unique @map("deploy_key") @db.VarChar(64)
+  deployTime  DateTime?   @map("deploy_time")
+  priority    Int         @default(0)
+  userId      BigInt      @map("user_id")
+  editTime    DateTime    @default(now()) @map("edit_time")
+  createTime  DateTime    @default(now()) @map("create_time")
+  updateTime  DateTime    @updatedAt @map("update_time")
+  isDelete    Boolean     @default(false) @map("is_delete")
+
+  user          User          @relation(fields: [userId], references: [id])
+  chatHistories ChatHistory[]
+
+  @@index([appName], map: "idx_apps_app_name")
+  @@index([userId], map: "idx_apps_user_id")
+  @@index([priority, createTime], map: "idx_apps_priority_create_time")
+  @@map("apps")
+}
+
+model ChatHistory {
+  id          BigInt          @id @default(autoincrement())
+  message     String          @db.Text
+  messageType ChatMessageType @map("message_type")
+  appId       BigInt          @map("app_id")
+  userId      BigInt          @map("user_id")
+  createTime  DateTime        @default(now()) @map("create_time")
+  updateTime  DateTime        @updatedAt @map("update_time")
+  isDelete    Boolean         @default(false) @map("is_delete")
+
+  app  App  @relation(fields: [appId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([appId], map: "idx_chat_histories_app_id")
+  @@index([createTime], map: "idx_chat_histories_create_time")
+  @@index([appId, createTime], map: "idx_chat_histories_app_id_create_time")
+  @@map("chat_histories")
+}

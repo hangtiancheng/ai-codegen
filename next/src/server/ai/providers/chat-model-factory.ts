@@ -1,0 +1,10 @@
+import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import type { ModelConfig } from "../models/model-config.schema";
+import { createOllamaChatModel } from "./ollama-factory";
+
+export const createChatModel = (config: ModelConfig): BaseChatModel => {
+  const { provider } = config;
+  return createOllamaChatModel(provider, config);
+};
+
+export type ChatModelFactory = typeof createChatModel;
