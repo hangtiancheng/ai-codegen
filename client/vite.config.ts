@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-/// <reference types="vitest/globals" />
+// /// <reference types="vitest/globals" />
 
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
@@ -15,11 +15,11 @@ export default defineConfig({
       },
     },
   },
-  test: {
-    environment: "jsdom",
-    globals: false,
-    setupFiles: ["./src/setup-tests.ts"],
-  },
+  // test: {
+  //   environment: "jsdom",
+  //   globals: false,
+  //   setupFiles: ["./tests/setup-tests.ts"],
+  // },
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

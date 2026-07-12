@@ -25,19 +25,13 @@ export const aiEnvSchema = z.object({
   CODEGEN_DEPLOY_HOST: z.string().min(1).default("http://localhost:3000/api"),
   OLLAMA_BASE_URL: z.string().min(1).default("http://localhost:11434"),
   STORAGE_DRIVER: z.enum(["local", "minio"]).default("local"),
-  STORAGE_LOCAL_PUBLIC_BASE_URL: z
-    .string()
-    .min(1)
-    .default("http://localhost:3000/storage"),
+  STORAGE_LOCAL_PUBLIC_BASE_URL: z.string().min(1).default("http://localhost:3000/storage"),
   STORAGE_LOCAL_ROOT_DIR: z.string().min(1).default("tmp/storage"),
   STORAGE_MINIO_ACCESS_KEY: z.string().min(1).optional(),
   STORAGE_MINIO_BUCKET: z.string().min(1).default("swifty-codegen"),
   STORAGE_MINIO_ENDPOINT: z.string().min(1).default("localhost"),
   STORAGE_MINIO_PORT: z.coerce.number().int().min(1).max(65_535).optional(),
-  STORAGE_MINIO_PUBLIC_BASE_URL: z
-    .string()
-    .min(1)
-    .default("http://localhost:9000/swifty-codegen"),
+  STORAGE_MINIO_PUBLIC_BASE_URL: z.string().min(1).default("http://localhost:9000/swifty-codegen"),
   STORAGE_MINIO_REGION: z.string().min(1).optional(),
   STORAGE_MINIO_SECRET_KEY: z.string().min(1).optional(),
   STORAGE_MINIO_USE_SSL: z

@@ -3,7 +3,7 @@ import type { AppType } from "../app.js";
 import { hashPassword } from "../common/index.js";
 import { UserRole } from "../generated/prisma/enums.js";
 import type { UserModel } from "../generated/prisma/models/User.js";
-import { buildUser } from "../test-support/index.js";
+import { buildUser } from "../../tests/index.js";
 import type { CodegenWorkflow, WorkflowSseEvent } from "../workflow/index.js";
 
 export type { RouteTestHarness } from "./route-test-harness.js";
