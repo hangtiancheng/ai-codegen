@@ -31,6 +31,3 @@ export const chatHistoryIdSchema = z
   .pipe(idStringSchema)
   .brand<"ChatHistoryId">();
 export type ChatHistoryId = z.infer<typeof chatHistoryIdSchema>;
-
-export const deployKeySchema = z.string().min(1).brand<"DeployKey">();
-export type DeployKey = z.infer<typeof deployKeySchema>;

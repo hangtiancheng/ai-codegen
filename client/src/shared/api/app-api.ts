@@ -6,7 +6,6 @@ import {
   appAddRequestSchema,
   appAdminUpdateRequestSchema,
   appDeleteRequestSchema,
-  appDeployRequestSchema,
   appUpdateRequestSchema,
   appIdSchema,
   appVoSchema,
@@ -14,7 +13,6 @@ import {
   type AppAddRequest,
   type AppAdminUpdateRequest,
   type AppDeleteRequest,
-  type AppDeployRequest,
   type AppId,
   type AppQueryRequest,
   type AppUpdateRequest,
@@ -126,16 +124,5 @@ export async function deleteAppByAdmin(
       body: appDeleteRequestSchema.parse(body),
     },
     z.boolean(),
-  );
-}
-
-export async function deployApp(body: AppDeployRequest): Promise<string> {
-  return httpClient.request(
-    {
-      method: "POST",
-      url: "app/deploy",
-      body: appDeployRequestSchema.parse(body),
-    },
-    z.string().min(1),
   );
 }

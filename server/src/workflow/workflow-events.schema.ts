@@ -5,7 +5,6 @@ export const workflowStepSchema = z.enum([
   "router",
   "codegen",
   "qualityCheck",
-  "projectBuild",
   "saveProject",
   "chatHistory",
 ]);

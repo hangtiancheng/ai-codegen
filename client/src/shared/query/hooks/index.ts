@@ -2,7 +2,6 @@ export {
   useAddApp,
   useDeleteApp,
   useDeleteAppByAdmin,
-  useDeployApp,
   useUpdateApp,
   useUpdateAppByAdmin,
 } from "./use-app-mutations";

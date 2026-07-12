@@ -7,7 +7,6 @@ import {
   addApp,
   deleteApp,
   deleteAppByAdmin,
-  deployApp,
   updateApp,
   updateAppByAdmin,
 } from "@/shared/api";
@@ -15,7 +14,6 @@ import {
   type AppAddRequest,
   type AppAdminUpdateRequest,
   type AppDeleteRequest,
-  type AppDeployRequest,
   type AppId,
   type AppUpdateRequest,
 } from "@/shared/schemas";
@@ -88,23 +86,6 @@ export function useDeleteAppByAdmin(): UseMutationResult<
   return useMutation({
     mutationFn: deleteAppByAdmin,
     onSuccess: () => {
-      void client.invalidateQueries({ queryKey: queryKeys.app.all });
-    },
-  });
-}
-
-export function useDeployApp(): UseMutationResult<
-  string,
-  Error,
-  AppDeployRequest
-> {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: deployApp,
-    onSuccess: (_data, variables) => {
-      void client.invalidateQueries({
-        queryKey: queryKeys.app.byId(variables.appId),
-      });
       void client.invalidateQueries({ queryKey: queryKeys.app.all });
     },
   });

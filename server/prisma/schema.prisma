@@ -49,8 +49,6 @@ model App {
   appCover    String?     @map("app_cover") @db.VarChar(512)
   initPrompt  String?     @map("init_prompt") @db.Text
   codegenType CodegenType @default(MULTI_FILES) @map("codegen_type")
-  deployKey   String?     @unique @map("deploy_key") @db.VarChar(64)
-  deployTime  DateTime?   @map("deploy_time")
   priority    Int         @default(0)
   userId      BigInt      @map("user_id")
   editTime    DateTime    @default(now()) @map("edit_time")

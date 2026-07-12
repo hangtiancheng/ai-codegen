@@ -8,10 +8,6 @@ export {
   ConfirmationDialog,
   type ConfirmationDialogProps,
 } from "./confirmation-dialog";
-export {
-  DeploySuccessModal,
-  type DeploySuccessModalProps,
-} from "./deploy-success-modal";
 export { DataTable, type DataTableColumn } from "./data-table";
 export { EmptyState, type EmptyStateProps } from "./empty-state";
 export { ErrorState, type ErrorStateProps } from "./error-state";

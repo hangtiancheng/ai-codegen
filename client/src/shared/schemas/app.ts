@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { appIdSchema, deployKeySchema, userIdSchema } from "./branded-ids";
+import { appIdSchema, userIdSchema } from "./branded-ids";
 import { codegenTypeSchema } from "./codegen-type";
 import { isoTimestampSchema, nonNegativeIntSchema } from "./primitives";
 import { userVoSchema } from "./user";
@@ -10,8 +10,6 @@ const appVoBaseSchema = z.object({
   id: appIdSchema,
   appName: z.string().min(1),
   initPrompt: z.string().min(1),
-  deployKey: deployKeySchema.nullable().optional(),
-  deployTime: isoTimestampSchema.nullable().optional(),
   priority: nonNegativeIntSchema.optional(),
   userId: userIdSchema,
   createTime: isoTimestampSchema.optional(),
@@ -19,21 +17,10 @@ const appVoBaseSchema = z.object({
   user: userVoSchema.optional(),
 });
 
-export const appVoSchema = appVoBaseSchema
-  .extend({
-    appCover: appCoverValueSchema.optional(),
-    codegenType: codegenTypeSchema,
-  })
-  .transform(({ appCover, codegenType, deployTime, ...app }) => {
-    return {
-      ...app,
-      appCover: appCover ?? null,
-      codegenType,
-      ...(deployTime !== undefined && {
-        deployTime,
-      }),
-    };
-  });
+export const appVoSchema = appVoBaseSchema.extend({
+  appCover: appCoverValueSchema.optional(),
+  codegenType: codegenTypeSchema,
+});
 
 export type AppVo = z.infer<typeof appVoSchema>;
 
@@ -53,10 +40,6 @@ export const appAdminUpdateRequestSchema = z.object({
   priority: nonNegativeIntSchema.optional(),
 });
 
-export const appDeployRequestSchema = z.object({
-  appId: appIdSchema,
-});
-
 export const appDeleteRequestSchema = z.object({
   id: appIdSchema,
 });
@@ -64,5 +47,4 @@ export const appDeleteRequestSchema = z.object({
 export type AppAddRequest = z.infer<typeof appAddRequestSchema>;
 export type AppUpdateRequest = z.infer<typeof appUpdateRequestSchema>;
 export type AppAdminUpdateRequest = z.infer<typeof appAdminUpdateRequestSchema>;
-export type AppDeployRequest = z.infer<typeof appDeployRequestSchema>;
 export type AppDeleteRequest = z.infer<typeof appDeleteRequestSchema>;

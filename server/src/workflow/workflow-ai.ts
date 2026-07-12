@@ -107,16 +107,3 @@ export const isQualityPassed = (json: string): boolean => {
   if (result.passed !== undefined) return result.passed;
   return (result.score ?? 100) >= 60;
 };
-
-export const createNoopQualityChecker = (): QualityChecker => ({
-  check: async ({ code }) => ({
-    message: code.trim().length === 0 ? "No code generated" : "Quality check passed",
-    passed: code.trim().length > 0,
-  }),
-});
-
-export const createStaticCodeGenerator = (content: string): CodeGenerator => ({
-  streamCode: async function* () {
-    yield { content };
-  },
-});

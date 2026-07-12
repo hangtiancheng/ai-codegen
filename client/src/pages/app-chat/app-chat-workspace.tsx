@@ -2,15 +2,11 @@ import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { selectIsAdmin, useUserStore } from "@/shared/auth";
-import { getDeployUrl, getStaticPreviewUrl } from "@/shared/config";
-import {
-  useDeleteApp,
-  useDeleteAppByAdmin,
-  useDeployApp,
-} from "@/shared/query";
+import { getStaticPreviewUrl } from "@/shared/config";
+import { useDeleteApp, useDeleteAppByAdmin } from "@/shared/query";
 import { type AppVo } from "@/shared/schemas";
-import { AppDetailModal, DeploySuccessModal, PageContainer } from "@/shared/ui";
-import { handleChatDeploy, handleChatDownload } from "./chat-action-handlers";
+import { AppDetailModal, PageContainer } from "@/shared/ui";
+import { handleChatDownload } from "./chat-action-handlers";
 import { ChatActions } from "./chat-actions";
 import { ChatComposer } from "./chat-composer";
 import { ChatHeader } from "./chat-header";
@@ -24,31 +20,20 @@ import { useVisualEditor } from "./use-visual-editor";
 export function AppChatWorkspace({ app }: { readonly app: AppVo }): ReactNode {
   const navigate = useNavigate();
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [deployUrl, setDeployUrl] = useState<string | undefined>();
   const [downloading, setDownloading] = useState(false);
   const [previewVersion, setPreviewVersion] = useState(0);
   const [generatedPreviewReady, setGeneratedPreviewReady] = useState(false);
   const user = useUserStore((state) => state.user);
   const isAdmin = useUserStore(selectIsAdmin);
   const history = useChatHistoryFeed(app.id);
-  const deployApp = useDeployApp();
   const deleteApp = useDeleteApp();
   const deleteAppByAdmin = useDeleteAppByAdmin();
   const visualEditor = useVisualEditor();
   const isOwner = app.userId === user?.id;
   const canManage = isAdmin || isOwner;
-  const activeDeployKey = app.deployTime
-    ? (app.deployKey ?? undefined)
-    : undefined;
-  const shouldAutoSendInitialPrompt = isOwner && activeDeployKey === undefined;
-  const previewReady =
-    activeDeployKey !== undefined ||
-    history.records.length >= 2 ||
-    generatedPreviewReady;
-  const previewBaseUrl =
-    activeDeployKey !== undefined
-      ? getDeployUrl(activeDeployKey)
-      : getStaticPreviewUrl(app.codegenType, app.id);
+  const shouldAutoSendInitialPrompt = isOwner;
+  const previewReady = history.records.length >= 2 || generatedPreviewReady;
+  const previewBaseUrl = getStaticPreviewUrl(app.codegenType, app.id);
   const previewUrl = previewReady
     ? appendPreviewVersion(previewBaseUrl, previewVersion)
     : undefined;
@@ -78,9 +63,7 @@ export function AppChatWorkspace({ app }: { readonly app: AppVo }): ReactNode {
       />
       <ChatActions
         canManage={canManage}
-        deploying={deployApp.isPending}
         downloading={downloading}
-        onDeploy={() => handleChatDeploy(app, deployApp.mutate, setDeployUrl)}
         onDownload={() => handleChatDownload(app, setDownloading)}
       />
       <div className="grid min-h-180 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
@@ -130,15 +113,6 @@ export function AppChatWorkspace({ app }: { readonly app: AppVo }): ReactNode {
               onError: () => toast.error("Delete failed"),
             },
           );
-        }}
-      />
-      <DeploySuccessModal
-        open={deployUrl !== undefined}
-        deployUrl={deployUrl ?? ""}
-        onOpenChange={() => setDeployUrl(undefined)}
-        onOpenSite={() => {
-          if (deployUrl)
-            window.open(deployUrl, "_blank", "noopener,noreferrer");
         }}
       />
     </PageContainer>

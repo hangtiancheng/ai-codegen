@@ -10,7 +10,6 @@ export type AppSectionProps = {
   readonly featured?: boolean;
   readonly onViewDetails: (app: AppVo) => void;
   readonly onViewChat: (app: AppVo) => void;
-  readonly onViewWork: (app: AppVo) => void;
 };
 
 export function AppSection({
@@ -21,7 +20,6 @@ export function AppSection({
   featured = false,
   onViewDetails,
   onViewChat,
-  onViewWork,
 }: AppSectionProps): ReactNode {
   return (
     <section className="grid gap-5">
@@ -47,7 +45,6 @@ export function AppSection({
               featured={featured}
               onViewDetails={onViewDetails}
               onViewChat={onViewChat}
-              onViewWork={onViewWork}
             />
           ))}
         </div>

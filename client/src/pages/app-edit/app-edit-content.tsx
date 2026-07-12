@@ -4,20 +4,9 @@ import { toast } from "sonner";
 import { selectIsAdmin, useUserStore } from "@/shared/auth";
 import { downloadAppCode } from "@/shared/api";
 import { getStaticPreviewUrl } from "@/shared/config";
-import { reportRuntimeIssue } from "@/shared/observability";
-import {
-  useAppById,
-  useDeployApp,
-  useUpdateApp,
-  useUpdateAppByAdmin,
-} from "@/shared/query";
+import { useAppById, useUpdateApp, useUpdateAppByAdmin } from "@/shared/query";
 import { type AppId } from "@/shared/schemas";
-import {
-  DeploySuccessModal,
-  EmptyState,
-  LoadingState,
-  PageContainer,
-} from "@/shared/ui";
+import { EmptyState, LoadingState, PageContainer } from "@/shared/ui";
 import { AppEditForm } from "./app-edit-form";
 import { optionalCover } from "./app-edit-form-schema";
 import { AppEditInfoPanel } from "./app-edit-info-panel";
@@ -30,14 +19,12 @@ export type AppEditContentProps = {
 export function AppEditContent({ appId }: AppEditContentProps): ReactNode {
   const navigate = useNavigate();
   const [formKey, setFormKey] = useState(0);
-  const [deployUrl, setDeployUrl] = useState<string | undefined>();
   const [downloading, setDownloading] = useState(false);
   const user = useUserStore((state) => state.user);
   const isAdmin = useUserStore(selectIsAdmin);
   const appQuery = useAppById(appId);
   const updateApp = useUpdateApp();
   const updateAppByAdmin = useUpdateAppByAdmin();
-  const deployApp = useDeployApp();
   const app = appQuery.data;
 
   if (appQuery.isLoading) return <LoadingState label="Loading app details" />;
@@ -47,32 +34,10 @@ export function AppEditContent({ appId }: AppEditContentProps): ReactNode {
   return (
     <PageContainer
       title="Edit App"
-      description="Update metadata, deploy, preview, and download generated code."
+      description="Update metadata, preview, and download generated code."
     >
       <AppEditToolbar
-        deploying={deployApp.isPending}
         downloading={downloading}
-        canPreview={Boolean(app.deployKey)}
-        onDeploy={() => {
-          deployApp.mutate(
-            { appId: app.id },
-            {
-              onSuccess: (url) => {
-                setDeployUrl(url);
-                toast.success("Deploy successful");
-              },
-              onError: (cause) => {
-                reportRuntimeIssue({
-                  kind: "deploy-failure",
-                  message: "Deploy failed",
-                  context: { appId: app.id },
-                  cause,
-                });
-                toast.error("Deploy failed");
-              },
-            },
-          );
-        }}
         onPreview={() =>
           window.open(getStaticPreviewUrl(app.codegenType, app.id), "_blank")
         }
@@ -110,15 +75,6 @@ export function AppEditContent({ appId }: AppEditContentProps): ReactNode {
         }}
       />
       <AppEditInfoPanel app={app} />
-      <DeploySuccessModal
-        open={deployUrl !== undefined}
-        deployUrl={deployUrl ?? ""}
-        onOpenChange={() => setDeployUrl(undefined)}
-        onOpenSite={() => {
-          if (deployUrl)
-            window.open(deployUrl, "_blank", "noopener,noreferrer");
-        }}
-      />
     </PageContainer>
   );
 }

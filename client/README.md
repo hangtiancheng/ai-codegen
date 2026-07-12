@@ -1,6 +1,6 @@
 # AI Codegen Client
 
-The AI Codegen Client is the React frontend for the AI code generation platform. It provides the product interface for browsing generated apps, creating new apps from prompts, chatting with the AI code generator, previewing generated output, deploying Vite projects, editing app metadata, and managing users, apps, and chat history from admin pages.
+The AI Codegen Client is the React frontend for the AI code generation platform. It provides the product interface for browsing generated apps, creating new apps from prompts, chatting with the AI code generator, previewing generated output, editing app metadata, and managing users, apps, and chat history from admin pages.
 
 The client is built with React 19, Vite, TypeScript, React Router, TanStack Query, TanStack Form, Zod, Tailwind CSS, and a small shared UI system. Runtime configuration is validated with Zod, server responses are decoded through schemas, and streaming code generation is consumed through Server-Sent Events.
 
@@ -21,7 +21,6 @@ The client is built with React 19, Vite, TypeScript, React Router, TanStack Quer
 - [Pages](#pages)
 - [Shared UI](#shared-ui)
 - [Generated App Preview](#generated-app-preview)
-- [Vite Deployment URLs](#vite-deployment-urls)
 - [Forms and Validation](#forms-and-validation)
 - [Markdown Rendering](#markdown-rendering)
 - [Styling](#styling)
@@ -52,10 +51,9 @@ http://localhost:3000/api
 
 The frontend communicates with the backend through:
 
-- JSON APIs for users, apps, chat history, deployment, and admin pages.
+- JSON APIs for users, apps, chat history, and admin pages.
 - Server-Sent Events for streaming AI-generated code.
 - Static preview URLs for generated output.
-- Deployed Vite app URLs for built projects.
 
 The app is intentionally schema-driven. Runtime environment variables, route parameters, API responses, stream events, branded IDs, pagination, admin filters, visual editor payloads, and domain objects are validated with Zod before use.
 
@@ -84,21 +82,15 @@ Capabilities:
 - Render user and AI messages.
 - Preview generated output in an iframe.
 - Refresh preview content with versioned URLs.
-- Use deployed Vite URLs when an app has a deployment key.
-- Avoid automatically re-running generation when a deployed app already exists.
 - Display selected visual editor element context.
 
-### App Editing and Deployment
+### App Editing
 
-The app edit page supports app metadata and deployment workflows.
+The app edit page supports app metadata editing.
 
 Capabilities:
 
 - Edit app information.
-- Trigger deployment.
-- Open deployed URLs.
-- Show deployment success modal.
-- Copy deployed URL.
 
 ### Admin Management
 
@@ -178,7 +170,7 @@ client/
     pages/
       home/                       Landing page, app list, prompt composer
       app-chat/                   Chat workspace, preview, stream handling, visual editor context
-      app-edit/                   App edit form, deploy action, deployment UI
+      app-edit/                   App edit form and info panel
       user-login/                 Login page
       user-register/              Registration page
       admin-user-manage/          Admin user table and filters
@@ -214,7 +206,7 @@ Recommended local tools:
 - A running AI Codegen Server.
 - A browser with modern ES module support.
 
-The frontend does not directly talk to Ollama, PostgreSQL, Redis, or MinIO. Those dependencies belong to the backend. The frontend only needs the backend API URL and deployed app domain URL.
+The frontend does not directly talk to Ollama, PostgreSQL, Redis, or MinIO. Those dependencies belong to the backend. The frontend only needs the backend API URL.
 
 ## Quick Start
 
@@ -258,24 +250,21 @@ The schema is:
 
 ```ts
 VITE_API_BASE_URL: string URL
-VITE_DEPLOY_DOMAIN: string URL
 ```
 
 Defaults:
 
-| Variable             | Default                          | Description                                                              |
-| -------------------- | -------------------------------- | ------------------------------------------------------------------------ |
-| `VITE_API_BASE_URL`  | `http://localhost:3000/api`      | Backend API base URL. Used by JSON APIs and SSE stream URLs.             |
-| `VITE_DEPLOY_DOMAIN` | `http://localhost:3000/api/dist` | Base domain for deployed Vite apps. Used by deploy preview URL builders. |
+| Variable            | Default                     | Description                                                  |
+| ------------------- | --------------------------- | ------------------------------------------------------------ |
+| `VITE_API_BASE_URL` | `http://localhost:3000/api` | Backend API base URL. Used by JSON APIs and SSE stream URLs. |
 
 Example local `.env`:
 
 ```env
 VITE_API_BASE_URL=http://localhost:3000/api
-VITE_DEPLOY_DOMAIN=http://localhost:3000/api/dist
 ```
 
-The repository currently does not require a client `.env` file for default local development because both variables have safe local defaults.
+The repository currently does not require a client `.env` file for default local development because the variable has a safe local default.
 
 ## Application Routes
 
@@ -291,10 +280,10 @@ Public routes:
 
 Authenticated routes:
 
-| Path            | Page          | Description                          |
-| --------------- | ------------- | ------------------------------------ |
-| `/app/chat/:id` | `AppChatPage` | AI chat and preview workspace.       |
-| `/app/edit/:id` | `AppEditPage` | App metadata editing and deployment. |
+| Path            | Page          | Description                    |
+| --------------- | ------------- | ------------------------------ |
+| `/app/chat/:id` | `AppChatPage` | AI chat and preview workspace. |
+| `/app/edit/:id` | `AppEditPage` | App metadata editing.          |
 
 Admin routes:
 
@@ -328,7 +317,7 @@ Important files:
 http-client.ts              Generic HTTP request client
 http-client-singleton.ts    Shared client instance
 decode-envelope.ts          Response envelope decoding
-app-api.ts                  App APIs and deployment APIs
+app-api.ts                  App APIs
 user-api.ts                 User authentication and admin user APIs
 chat-history-api.ts         Chat history APIs
 chat-stream-client.ts       Server-Sent Events client
@@ -508,9 +497,8 @@ Responsibilities:
 - Append streamed AI chunks.
 - Render messages.
 - Render generated preview iframe.
-- Refresh static or deployed previews.
+- Refresh static previews.
 - Track selected visual editor context.
-- Avoid duplicate auto-generation for already deployed apps.
 
 Important files:
 
@@ -542,9 +530,6 @@ Responsibilities:
 - Edit app metadata.
 - Validate edit forms.
 - Submit app updates.
-- Trigger deployment.
-- Display deployment success.
-- Open deployed URLs.
 
 Important files:
 
@@ -595,7 +580,6 @@ badge.tsx
 button.tsx
 confirmation-dialog.tsx
 data-table.tsx
-deploy-success-modal.tsx
 empty-state.tsx
 error-boundary.tsx
 error-state.tsx
@@ -622,12 +606,7 @@ The common modal pattern is:
 
 The chat workspace renders generated output inside a preview panel.
 
-There are two preview URL modes:
-
-- Static generated output preview.
-- Deployed Vite app preview.
-
-Static preview URLs are used before deployment. Deployed URLs are used after an app has a `deployKey`.
+Static preview URLs are used for generated output.
 
 URL helpers live in:
 
@@ -639,7 +618,6 @@ Important helpers:
 
 ```text
 getStaticPreviewUrl(codegenType, appId)
-getDeployUrl(deployKey)
 ```
 
 Preview refresh appends a version query parameter:
@@ -648,60 +626,7 @@ Preview refresh appends a version query parameter:
 ?v=<number>
 ```
 
-This forces the iframe to reload without changing the underlying deployed path semantics.
-
-## Vite Deployment URLs
-
-Generated Vite apps are served by the backend under:
-
-```text
-/api/dist/<deployKey>/index.html
-```
-
-The frontend builds deployed URLs with:
-
-```ts
-getDeployUrl(deployKey);
-```
-
-The expected default result is:
-
-```text
-http://localhost:3000/api/dist/<deployKey>/index.html
-```
-
-The explicit `index.html` segment is important. Vite build output commonly contains relative assets:
-
-```html
-<script type="module" crossorigin src="./assets/index.js"></script>
-<link rel="stylesheet" crossorigin href="./assets/index.css" />
-```
-
-When the document URL is:
-
-```text
-/api/dist/<deployKey>/index.html?v=1
-```
-
-the browser resolves assets under:
-
-```text
-/api/dist/<deployKey>/assets/...
-```
-
-If the document URL were:
-
-```text
-/api/dist/<deployKey>?v=1
-```
-
-the browser could resolve `./assets/...` under the wrong path:
-
-```text
-/api/dist/assets/...
-```
-
-For this reason, deployed previews and refreshes should always use the `index.html` URL form.
+This forces the iframe to reload without changing the underlying path.
 
 ## Forms and Validation
 
@@ -959,11 +884,8 @@ pnpm preview
 Deployment checklist:
 
 - Set `VITE_API_BASE_URL` to the public backend API URL.
-- Set `VITE_DEPLOY_DOMAIN` to the public deployed-app domain.
 - Ensure backend CORS allows the frontend origin.
 - Ensure cookies or session credentials are valid for the deployed domain setup.
-- Verify `/api/dist/<deployKey>/index.html` is reachable for deployed Vite apps.
-- Verify deployed Vite assets resolve under `/api/dist/<deployKey>/assets/...`.
 - Run `pnpm typecheck`.
 - Run `pnpm lint`.
 - Run `pnpm test`.
@@ -1037,54 +959,6 @@ Check:
 - The browser did not abort the request.
 - The backend logs do not show a business error.
 
-### Refresh Opens a Static Preview Instead of a Deployed App
-
-If the app has a `deployKey`, the preview URL should come from:
-
-```ts
-getDeployUrl(app.deployKey);
-```
-
-not from:
-
-```ts
-getStaticPreviewUrl(app.codegenType, app.id);
-```
-
-Inspect `src/pages/app-chat/app-chat-workspace.tsx` if this behavior regresses.
-
-### Deployed Vite Assets Resolve to the Wrong Path
-
-The deployed URL must include `index.html`:
-
-```text
-http://localhost:3000/api/dist/<deployKey>/index.html
-```
-
-If the iframe loads:
-
-```text
-http://localhost:3000/api/dist/<deployKey>?v=1
-```
-
-relative assets may resolve incorrectly.
-
-Check:
-
-```text
-src/shared/config/urls.ts
-src/shared/config/urls.test.ts
-```
-
-### Deployment Success URL Is Duplicated
-
-The deployment API may return a full deployed URL. Do not pass a full URL into a helper that expects only a deploy key.
-
-Correct behavior:
-
-- Use the response URL directly when the API returns a URL.
-- Use `getDeployUrl(deployKey)` only when the value is a deploy key.
-
 ### Modal Is Not Centered on Long Pages
 
 Modal overlays should be rendered with a portal into `document.body`.
@@ -1093,7 +967,6 @@ Check modal implementations:
 
 ```text
 src/shared/ui/app-detail-modal.tsx
-src/shared/ui/deploy-success-modal.tsx
 ```
 
 Expected pattern:
@@ -1143,8 +1016,6 @@ Do not render raw model output directly as HTML without sanitization.
 
 - Keep `src/shared/schemas/` aligned with backend response contracts.
 - Add or update tests when changing URL helpers, stream parsing, auth guards, or ID schemas.
-- Keep `VITE_DEPLOY_DOMAIN` aligned with backend `CODEGEN_DEPLOY_HOST` and static deploy routes.
-- Use `getDeployUrl()` for deploy-key-based URLs and direct API response URLs when the server returns a complete URL.
 - Prefer shared query hooks over ad hoc API calls in page components.
 - Prefer shared UI primitives over one-off component styling.
 - Keep Storybook fixtures valid against production schemas.

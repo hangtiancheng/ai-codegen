@@ -23,10 +23,6 @@ export function AppEditInfoPanel({ app }: AppEditInfoPanelProps): ReactNode {
         </InfoTile>
         <InfoTile label="Created" value={formatDateTime(app.createTime)} />
         <InfoTile label="Updated" value={formatDateTime(app.updateTime)} />
-        <InfoTile
-          label="Deployed"
-          value={app.deployTime ? formatDateTime(app.deployTime) : "No"}
-        />
         <InfoTile label="Generation Type">
           <Badge variant="blue">{formatCodegenType(app.codegenType)}</Badge>
         </InfoTile>

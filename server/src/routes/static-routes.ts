@@ -7,7 +7,6 @@ import { resolveInsideBase, resolveStaticFile } from "../project/index.js";
 import type { AppHonoEnv } from "../session/index.js";
 
 export type StaticRoutesDeps = Readonly<{
-  deployRootDir: string;
   outputRootDir: string;
 }>;
 
@@ -28,18 +27,6 @@ const splitStaticPath = (value: string) => {
   return {
     hasExplicitRelativePath: rest.length > 0 && nestedPath.length > 0,
     outputKey,
-    relativePath: nestedPath.length === 0 ? "index.html" : nestedPath,
-  };
-};
-
-const splitDeployPath = (value: string) => {
-  const [deployKey = "", ...rest] = value.split("/");
-  const nestedPath = rest.join("/");
-  if (deployKey.length === 0) {
-    throw new HttpError(ErrorCode.NotFoundError, "Deploy route not found", 404);
-  }
-  return {
-    deployKey,
     relativePath: nestedPath.length === 0 ? "index.html" : nestedPath,
   };
 };
@@ -101,26 +88,17 @@ const pathAfterMarker = (url: string, marker: string): string => {
 
 const staticPathFromUrl = (url: string): string => pathAfterMarker(url, "/static/");
 
-const deployPathFromUrl = (url: string): string => pathAfterMarker(url, "/dist/");
-
-export const createStaticRoutes = ({ deployRootDir, outputRootDir }: StaticRoutesDeps) =>
-  new Hono<AppHonoEnv>()
-    .get("/dist/:deployKey/*", (c) => {
-      const { deployKey, relativePath } = splitDeployPath(deployPathFromUrl(c.req.url));
-      const deployDir = resolveInsideBase(deployRootDir, deployKey);
-      const resolved = resolveStaticFile(deployDir, relativePath);
-      return staticResponse(c, resolved);
-    })
-    .get("/static/*", (c) => {
-      const { hasExplicitRelativePath, outputKey, relativePath } = splitStaticPath(
-        staticPathFromUrl(c.req.url),
-      );
-      if (shouldRedirectPreviewRoot(c.req.url, outputKey, hasExplicitRelativePath)) {
-        return c.redirect(previewRootRedirectUrl(c.req.url), 308);
-      }
-      const outputDir = resolveInsideBase(outputRootDir, normalizeOutputKey(outputKey));
-      const resolved = resolveStaticFile(outputDir, relativePath);
-      return staticResponse(c, resolved);
-    });
+export const createStaticRoutes = ({ outputRootDir }: StaticRoutesDeps) =>
+  new Hono<AppHonoEnv>().get("/static/*", (c) => {
+    const { hasExplicitRelativePath, outputKey, relativePath } = splitStaticPath(
+      staticPathFromUrl(c.req.url),
+    );
+    if (shouldRedirectPreviewRoot(c.req.url, outputKey, hasExplicitRelativePath)) {
+      return c.redirect(previewRootRedirectUrl(c.req.url), 308);
+    }
+    const outputDir = resolveInsideBase(outputRootDir, normalizeOutputKey(outputKey));
+    const resolved = resolveStaticFile(outputDir, relativePath);
+    return staticResponse(c, resolved);
+  });
 
 export type StaticRoutes = ReturnType<typeof createStaticRoutes>;

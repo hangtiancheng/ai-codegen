@@ -44,8 +44,6 @@ export type AppMinAggregateOutputType = {
   appCover: string | null
   initPrompt: string | null
   codegenType: $Enums.CodegenType | null
-  deployKey: string | null
-  deployTime: Date | null
   priority: number | null
   userId: bigint | null
   editTime: Date | null
@@ -60,8 +58,6 @@ export type AppMaxAggregateOutputType = {
   appCover: string | null
   initPrompt: string | null
   codegenType: $Enums.CodegenType | null
-  deployKey: string | null
-  deployTime: Date | null
   priority: number | null
   userId: bigint | null
   editTime: Date | null
@@ -76,8 +72,6 @@ export type AppCountAggregateOutputType = {
   appCover: number
   initPrompt: number
   codegenType: number
-  deployKey: number
-  deployTime: number
   priority: number
   userId: number
   editTime: number
@@ -106,8 +100,6 @@ export type AppMinAggregateInputType = {
   appCover?: true
   initPrompt?: true
   codegenType?: true
-  deployKey?: true
-  deployTime?: true
   priority?: true
   userId?: true
   editTime?: true
@@ -122,8 +114,6 @@ export type AppMaxAggregateInputType = {
   appCover?: true
   initPrompt?: true
   codegenType?: true
-  deployKey?: true
-  deployTime?: true
   priority?: true
   userId?: true
   editTime?: true
@@ -138,8 +128,6 @@ export type AppCountAggregateInputType = {
   appCover?: true
   initPrompt?: true
   codegenType?: true
-  deployKey?: true
-  deployTime?: true
   priority?: true
   userId?: true
   editTime?: true
@@ -241,8 +229,6 @@ export type AppGroupByOutputType = {
   appCover: string | null
   initPrompt: string | null
   codegenType: $Enums.CodegenType
-  deployKey: string | null
-  deployTime: Date | null
   priority: number
   userId: bigint
   editTime: Date
@@ -280,8 +266,6 @@ export type AppWhereInput = {
   appCover?: Prisma.StringNullableFilter<"App"> | string | null
   initPrompt?: Prisma.StringNullableFilter<"App"> | string | null
   codegenType?: Prisma.EnumCodegenTypeFilter<"App"> | $Enums.CodegenType
-  deployKey?: Prisma.StringNullableFilter<"App"> | string | null
-  deployTime?: Prisma.DateTimeNullableFilter<"App"> | Date | string | null
   priority?: Prisma.IntFilter<"App"> | number
   userId?: Prisma.BigIntFilter<"App"> | bigint | number
   editTime?: Prisma.DateTimeFilter<"App"> | Date | string
@@ -298,8 +282,6 @@ export type AppOrderByWithRelationInput = {
   appCover?: Prisma.SortOrderInput | Prisma.SortOrder
   initPrompt?: Prisma.SortOrderInput | Prisma.SortOrder
   codegenType?: Prisma.SortOrder
-  deployKey?: Prisma.SortOrderInput | Prisma.SortOrder
-  deployTime?: Prisma.SortOrderInput | Prisma.SortOrder
   priority?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   editTime?: Prisma.SortOrder
@@ -312,7 +294,6 @@ export type AppOrderByWithRelationInput = {
 
 export type AppWhereUniqueInput = Prisma.AtLeast<{
   id?: bigint | number
-  deployKey?: string
   AND?: Prisma.AppWhereInput | Prisma.AppWhereInput[]
   OR?: Prisma.AppWhereInput[]
   NOT?: Prisma.AppWhereInput | Prisma.AppWhereInput[]
@@ -320,7 +301,6 @@ export type AppWhereUniqueInput = Prisma.AtLeast<{
   appCover?: Prisma.StringNullableFilter<"App"> | string | null
   initPrompt?: Prisma.StringNullableFilter<"App"> | string | null
   codegenType?: Prisma.EnumCodegenTypeFilter<"App"> | $Enums.CodegenType
-  deployTime?: Prisma.DateTimeNullableFilter<"App"> | Date | string | null
   priority?: Prisma.IntFilter<"App"> | number
   userId?: Prisma.BigIntFilter<"App"> | bigint | number
   editTime?: Prisma.DateTimeFilter<"App"> | Date | string
@@ -329,7 +309,7 @@ export type AppWhereUniqueInput = Prisma.AtLeast<{
   isDelete?: Prisma.BoolFilter<"App"> | boolean
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   chatHistories?: Prisma.ChatHistoryListRelationFilter
-}, "id" | "deployKey">
+}, "id">
 
 export type AppOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -337,8 +317,6 @@ export type AppOrderByWithAggregationInput = {
   appCover?: Prisma.SortOrderInput | Prisma.SortOrder
   initPrompt?: Prisma.SortOrderInput | Prisma.SortOrder
   codegenType?: Prisma.SortOrder
-  deployKey?: Prisma.SortOrderInput | Prisma.SortOrder
-  deployTime?: Prisma.SortOrderInput | Prisma.SortOrder
   priority?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   editTime?: Prisma.SortOrder
@@ -361,8 +339,6 @@ export type AppScalarWhereWithAggregatesInput = {
   appCover?: Prisma.StringNullableWithAggregatesFilter<"App"> | string | null
   initPrompt?: Prisma.StringNullableWithAggregatesFilter<"App"> | string | null
   codegenType?: Prisma.EnumCodegenTypeWithAggregatesFilter<"App"> | $Enums.CodegenType
-  deployKey?: Prisma.StringNullableWithAggregatesFilter<"App"> | string | null
-  deployTime?: Prisma.DateTimeNullableWithAggregatesFilter<"App"> | Date | string | null
   priority?: Prisma.IntWithAggregatesFilter<"App"> | number
   userId?: Prisma.BigIntWithAggregatesFilter<"App"> | bigint | number
   editTime?: Prisma.DateTimeWithAggregatesFilter<"App"> | Date | string
@@ -377,8 +353,6 @@ export type AppCreateInput = {
   appCover?: string | null
   initPrompt?: string | null
   codegenType?: $Enums.CodegenType
-  deployKey?: string | null
-  deployTime?: Date | string | null
   priority?: number
   editTime?: Date | string
   createTime?: Date | string
@@ -394,8 +368,6 @@ export type AppUncheckedCreateInput = {
   appCover?: string | null
   initPrompt?: string | null
   codegenType?: $Enums.CodegenType
-  deployKey?: string | null
-  deployTime?: Date | string | null
   priority?: number
   userId: bigint | number
   editTime?: Date | string
@@ -411,8 +383,6 @@ export type AppUpdateInput = {
   appCover?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   initPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   codegenType?: Prisma.EnumCodegenTypeFieldUpdateOperationsInput | $Enums.CodegenType
-  deployKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  deployTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   priority?: Prisma.IntFieldUpdateOperationsInput | number
   editTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -428,8 +398,6 @@ export type AppUncheckedUpdateInput = {
   appCover?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   initPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   codegenType?: Prisma.EnumCodegenTypeFieldUpdateOperationsInput | $Enums.CodegenType
-  deployKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  deployTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   priority?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   editTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -445,8 +413,6 @@ export type AppCreateManyInput = {
   appCover?: string | null
   initPrompt?: string | null
   codegenType?: $Enums.CodegenType
-  deployKey?: string | null
-  deployTime?: Date | string | null
   priority?: number
   userId: bigint | number
   editTime?: Date | string
@@ -461,8 +427,6 @@ export type AppUpdateManyMutationInput = {
   appCover?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   initPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   codegenType?: Prisma.EnumCodegenTypeFieldUpdateOperationsInput | $Enums.CodegenType
-  deployKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  deployTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   priority?: Prisma.IntFieldUpdateOperationsInput | number
   editTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -476,8 +440,6 @@ export type AppUncheckedUpdateManyInput = {
   appCover?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   initPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   codegenType?: Prisma.EnumCodegenTypeFieldUpdateOperationsInput | $Enums.CodegenType
-  deployKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  deployTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   priority?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   editTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -502,8 +464,6 @@ export type AppCountOrderByAggregateInput = {
   appCover?: Prisma.SortOrder
   initPrompt?: Prisma.SortOrder
   codegenType?: Prisma.SortOrder
-  deployKey?: Prisma.SortOrder
-  deployTime?: Prisma.SortOrder
   priority?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   editTime?: Prisma.SortOrder
@@ -524,8 +484,6 @@ export type AppMaxOrderByAggregateInput = {
   appCover?: Prisma.SortOrder
   initPrompt?: Prisma.SortOrder
   codegenType?: Prisma.SortOrder
-  deployKey?: Prisma.SortOrder
-  deployTime?: Prisma.SortOrder
   priority?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   editTime?: Prisma.SortOrder
@@ -540,8 +498,6 @@ export type AppMinOrderByAggregateInput = {
   appCover?: Prisma.SortOrder
   initPrompt?: Prisma.SortOrder
   codegenType?: Prisma.SortOrder
-  deployKey?: Prisma.SortOrder
-  deployTime?: Prisma.SortOrder
   priority?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   editTime?: Prisma.SortOrder
@@ -607,10 +563,6 @@ export type EnumCodegenTypeFieldUpdateOperationsInput = {
   set?: $Enums.CodegenType
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type IntFieldUpdateOperationsInput = {
   set?: number
   increment?: number
@@ -639,8 +591,6 @@ export type AppCreateWithoutUserInput = {
   appCover?: string | null
   initPrompt?: string | null
   codegenType?: $Enums.CodegenType
-  deployKey?: string | null
-  deployTime?: Date | string | null
   priority?: number
   editTime?: Date | string
   createTime?: Date | string
@@ -655,8 +605,6 @@ export type AppUncheckedCreateWithoutUserInput = {
   appCover?: string | null
   initPrompt?: string | null
   codegenType?: $Enums.CodegenType
-  deployKey?: string | null
-  deployTime?: Date | string | null
   priority?: number
   editTime?: Date | string
   createTime?: Date | string
@@ -700,8 +648,6 @@ export type AppScalarWhereInput = {
   appCover?: Prisma.StringNullableFilter<"App"> | string | null
   initPrompt?: Prisma.StringNullableFilter<"App"> | string | null
   codegenType?: Prisma.EnumCodegenTypeFilter<"App"> | $Enums.CodegenType
-  deployKey?: Prisma.StringNullableFilter<"App"> | string | null
-  deployTime?: Prisma.DateTimeNullableFilter<"App"> | Date | string | null
   priority?: Prisma.IntFilter<"App"> | number
   userId?: Prisma.BigIntFilter<"App"> | bigint | number
   editTime?: Prisma.DateTimeFilter<"App"> | Date | string
@@ -716,8 +662,6 @@ export type AppCreateWithoutChatHistoriesInput = {
   appCover?: string | null
   initPrompt?: string | null
   codegenType?: $Enums.CodegenType
-  deployKey?: string | null
-  deployTime?: Date | string | null
   priority?: number
   editTime?: Date | string
   createTime?: Date | string
@@ -732,8 +676,6 @@ export type AppUncheckedCreateWithoutChatHistoriesInput = {
   appCover?: string | null
   initPrompt?: string | null
   codegenType?: $Enums.CodegenType
-  deployKey?: string | null
-  deployTime?: Date | string | null
   priority?: number
   userId: bigint | number
   editTime?: Date | string
@@ -764,8 +706,6 @@ export type AppUpdateWithoutChatHistoriesInput = {
   appCover?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   initPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   codegenType?: Prisma.EnumCodegenTypeFieldUpdateOperationsInput | $Enums.CodegenType
-  deployKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  deployTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   priority?: Prisma.IntFieldUpdateOperationsInput | number
   editTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -780,8 +720,6 @@ export type AppUncheckedUpdateWithoutChatHistoriesInput = {
   appCover?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   initPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   codegenType?: Prisma.EnumCodegenTypeFieldUpdateOperationsInput | $Enums.CodegenType
-  deployKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  deployTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   priority?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   editTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -796,8 +734,6 @@ export type AppCreateManyUserInput = {
   appCover?: string | null
   initPrompt?: string | null
   codegenType?: $Enums.CodegenType
-  deployKey?: string | null
-  deployTime?: Date | string | null
   priority?: number
   editTime?: Date | string
   createTime?: Date | string
@@ -811,8 +747,6 @@ export type AppUpdateWithoutUserInput = {
   appCover?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   initPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   codegenType?: Prisma.EnumCodegenTypeFieldUpdateOperationsInput | $Enums.CodegenType
-  deployKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  deployTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   priority?: Prisma.IntFieldUpdateOperationsInput | number
   editTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -827,8 +761,6 @@ export type AppUncheckedUpdateWithoutUserInput = {
   appCover?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   initPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   codegenType?: Prisma.EnumCodegenTypeFieldUpdateOperationsInput | $Enums.CodegenType
-  deployKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  deployTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   priority?: Prisma.IntFieldUpdateOperationsInput | number
   editTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -843,8 +775,6 @@ export type AppUncheckedUpdateManyWithoutUserInput = {
   appCover?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   initPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   codegenType?: Prisma.EnumCodegenTypeFieldUpdateOperationsInput | $Enums.CodegenType
-  deployKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  deployTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   priority?: Prisma.IntFieldUpdateOperationsInput | number
   editTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -889,8 +819,6 @@ export type AppSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = ru
   appCover?: boolean
   initPrompt?: boolean
   codegenType?: boolean
-  deployKey?: boolean
-  deployTime?: boolean
   priority?: boolean
   userId?: boolean
   editTime?: boolean
@@ -908,8 +836,6 @@ export type AppSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extension
   appCover?: boolean
   initPrompt?: boolean
   codegenType?: boolean
-  deployKey?: boolean
-  deployTime?: boolean
   priority?: boolean
   userId?: boolean
   editTime?: boolean
@@ -925,8 +851,6 @@ export type AppSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extension
   appCover?: boolean
   initPrompt?: boolean
   codegenType?: boolean
-  deployKey?: boolean
-  deployTime?: boolean
   priority?: boolean
   userId?: boolean
   editTime?: boolean
@@ -942,8 +866,6 @@ export type AppSelectScalar = {
   appCover?: boolean
   initPrompt?: boolean
   codegenType?: boolean
-  deployKey?: boolean
-  deployTime?: boolean
   priority?: boolean
   userId?: boolean
   editTime?: boolean
@@ -952,7 +874,7 @@ export type AppSelectScalar = {
   isDelete?: boolean
 }
 
-export type AppOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "appName" | "appCover" | "initPrompt" | "codegenType" | "deployKey" | "deployTime" | "priority" | "userId" | "editTime" | "createTime" | "updateTime" | "isDelete", ExtArgs["result"]["app"]>
+export type AppOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "appName" | "appCover" | "initPrompt" | "codegenType" | "priority" | "userId" | "editTime" | "createTime" | "updateTime" | "isDelete", ExtArgs["result"]["app"]>
 export type AppInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   chatHistories?: boolean | Prisma.App$chatHistoriesArgs<ExtArgs>
@@ -977,8 +899,6 @@ export type $AppPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
     appCover: string | null
     initPrompt: string | null
     codegenType: $Enums.CodegenType
-    deployKey: string | null
-    deployTime: Date | null
     priority: number
     userId: bigint
     editTime: Date
@@ -1415,8 +1335,6 @@ export interface AppFieldRefs {
   readonly appCover: Prisma.FieldRef<"App", 'String'>
   readonly initPrompt: Prisma.FieldRef<"App", 'String'>
   readonly codegenType: Prisma.FieldRef<"App", 'CodegenType'>
-  readonly deployKey: Prisma.FieldRef<"App", 'String'>
-  readonly deployTime: Prisma.FieldRef<"App", 'DateTime'>
   readonly priority: Prisma.FieldRef<"App", 'Int'>
   readonly userId: Prisma.FieldRef<"App", 'BigInt'>
   readonly editTime: Prisma.FieldRef<"App", 'DateTime'>

@@ -16,7 +16,7 @@ import {
 import { type AppVo } from "@/shared/schemas";
 import { AppDetailModal, PageContainer } from "@/shared/ui";
 import { AppSection } from "./app-section";
-import { canManageApp, openDeployedApp } from "./home-actions";
+import { canManageApp } from "./home-actions";
 import { homeAppListParams } from "./app-list-params";
 import { PromptComposer } from "./prompt-composer";
 
@@ -96,7 +96,6 @@ export function HomePage(): ReactNode {
           loading={myAppsQuery.isLoading}
           onViewDetails={setSelectedApp}
           onViewChat={(app) => navigate(`/app/chat/${app.id}?view=1`)}
-          onViewWork={openDeployedApp}
         />
       ) : null}
       <AppSection
@@ -107,7 +106,6 @@ export function HomePage(): ReactNode {
         featured
         onViewDetails={setSelectedApp}
         onViewChat={(app) => navigate(`/app/chat/${app.id}?view=1`)}
-        onViewWork={openDeployedApp}
       />
       <AppDetailModal
         open={selectedApp !== undefined}

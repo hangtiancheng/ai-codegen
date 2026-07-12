@@ -24,7 +24,6 @@ export function ChatHeader({
         </h1>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <Badge variant="blue">{formatCodegenType(app.codegenType)}</Badge>
-          {app.deployKey ? <Badge variant="success">Deployed</Badge> : null}
         </div>
       </div>
       <div className="flex gap-2">

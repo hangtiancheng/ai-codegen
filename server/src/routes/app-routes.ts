@@ -1,11 +1,14 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import { stream } from "hono/streaming";
 import {
   type AppAddRequest,
+  type AppDownloadParam,
   type AppPageQuery,
   type AppService,
   type AppUpdateRequest,
   appAddSchema,
+  appDownloadParamSchema,
   appIdBodySchema,
   appIdQuerySchema,
   appPageQuerySchema,
@@ -19,7 +22,7 @@ import type { SessionUser } from "../session/session.schema.js";
 import type { CodegenWorkflow } from "../workflow/index.js";
 import { createAppAdminRoutes } from "./app-admin-routes.js";
 import { handleAppCodegen } from "./app-codegen.js";
-import { createAppDeploymentRoutes } from "./app-deployment-routes.js";
+import { createAppProjectArchive } from "./app-download.js";
 
 export type AppRoutesDeps = Readonly<{
   aiGenerationRateLimiter: RateLimiter;
@@ -74,12 +77,25 @@ export const createAppRoutes = ({
       const ok = await appService.deleteApp(id, userId);
       return c.json(createSuccessResponse(ok));
     })
-    .route(
-      "/",
-      createAppDeploymentRoutes({
-        appService,
-        ...(projectRootDir !== undefined && { projectRootDir }),
-      }),
+    .get(
+      "/download/:appId",
+      requireLogin,
+      zValidator("param", appDownloadParamSchema),
+      async (c) => {
+        const { appId }: AppDownloadParam = c.req.valid("param");
+        const userId = requireUserId(c.get("user"));
+        const { archive, filename } = await createAppProjectArchive(
+          { appService, ...(projectRootDir !== undefined && { projectRootDir }) },
+          { appId, userId },
+        );
+        c.header("Content-Type", "application/zip");
+        c.header("Content-Disposition", `attachment; filename="${filename}"`);
+        return stream(c, async (responseStream) => {
+          for await (const chunk of archive) {
+            await responseStream.write(chunk);
+          }
+        });
+      },
     )
     .get("/get/vo", zValidator("query", appIdQuerySchema), async (c) => {
       const { id } = c.req.valid("query");

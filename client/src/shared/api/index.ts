@@ -9,7 +9,6 @@ export {
   addApp,
   deleteApp,
   deleteAppByAdmin,
-  deployApp,
   getAppById,
   listAdminAppPage,
   listAwesomeAppPage,

@@ -1,4 +1,4 @@
-import { MessageSquare, Rocket } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { type ReactNode } from "react";
 import { type AppVo } from "@/shared/schemas";
 import { Badge } from "./badge";
@@ -10,7 +10,6 @@ export type AppCardProps = {
   readonly featured?: boolean;
   readonly onViewDetails?: (app: AppVo) => void;
   readonly onViewChat?: (app: AppVo) => void;
-  readonly onViewWork?: (app: AppVo) => void;
 };
 
 export function AppCard({
@@ -18,7 +17,6 @@ export function AppCard({
   featured = false,
   onViewDetails,
   onViewChat,
-  onViewWork,
 }: AppCardProps): ReactNode {
   return (
     <article className="group border-border bg-card overflow-hidden rounded-2xl border shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
@@ -51,16 +49,6 @@ export function AppCard({
             <MessageSquare className="size-4" aria-hidden="true" />
             View Chat
           </Button>
-          {app.deployKey ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => onViewWork?.(app)}
-            >
-              <Rocket className="size-4" aria-hidden="true" />
-              View Work
-            </Button>
-          ) : null}
         </div>
       </div>
       <div className="flex items-center gap-3 p-4">

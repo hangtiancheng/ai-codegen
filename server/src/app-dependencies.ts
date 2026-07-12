@@ -12,22 +12,12 @@ import {
   createAppService,
   createDefaultCodegenRouter,
 } from "./app-module/index.js";
-import { createDefaultScreenshotCapturer } from "./app-screenshot.js";
 import { createDefaultShutdown } from "./app-shutdown.js";
 import { createConfiguredStorage } from "./app-storage.js";
 import { createChatHistoryRepository, createChatHistoryService } from "./chat-history/index.js";
 import { env } from "./config/index.js";
 import { createPrismaClient } from "./database/index.js";
-import {
-  createBullMqScreenshotQueue,
-  createBullMqScreenshotWorker,
-  createDeploymentService,
-  createQueuedScreenshotJob,
-  createScreenshotJob,
-  createScreenshotQueueFailureObserver,
-  createScreenshotQueueProcessor,
-  createStorageHealthCheck,
-} from "./deployment/index.js";
+import { createStorageHealthCheck } from "./deployment/index.js";
 import { createHealthService, createMetricsService } from "./observability/index.js";
 import {
   createInMemoryRateLimitStore,
@@ -69,34 +59,7 @@ export const createDefaultDependencies = (): AppDependencies => {
   const appRepository: AppRepository = createAppRepository(db);
   const chatHistoryService = createChatHistoryService(createChatHistoryRepository(db));
   const aiRegistry = createAiModelRegistry(buildAiModelRegistryConfigFromEnv(env));
-  const { healthProbe: storageHealthProbe, storage } = createConfiguredStorage();
-  const directScreenshotJob = createScreenshotJob(
-    createDefaultScreenshotCapturer(),
-    storage,
-    appRepository,
-    metricsService,
-  );
-  const screenshotQueue =
-    redisClient === undefined ? undefined : createBullMqScreenshotQueue(redisClient);
-  const screenshotJob =
-    screenshotQueue === undefined
-      ? directScreenshotJob
-      : createQueuedScreenshotJob(screenshotQueue);
-  const screenshotWorker =
-    redisClient === undefined
-      ? undefined
-      : createBullMqScreenshotWorker(
-          redisClient,
-          createScreenshotQueueProcessor(directScreenshotJob),
-        );
-  const screenshotQueueEvents =
-    redisClient === undefined
-      ? undefined
-      : createScreenshotQueueFailureObserver(redisClient, metricsService);
-  const deploymentService = createDeploymentService(
-    { deployHost: env.CODEGEN_DEPLOY_HOST },
-    screenshotJob,
-  );
+  const { healthProbe: storageHealthProbe } = createConfiguredStorage();
   const rateLimitStore =
     redisClient === undefined
       ? createInMemoryRateLimitStore()
@@ -108,14 +71,13 @@ export const createDefaultDependencies = (): AppDependencies => {
       namespace: "ai-generation",
       windowSeconds: env.RATE_LIMIT_AI_GENERATION_WINDOW_SECONDS,
     }),
-    appService: createAppService(appRepository, createDefaultCodegenRouter(), deploymentService),
+    appService: createAppService(appRepository, createDefaultCodegenRouter()),
     chatHistoryService,
     codegenWorkflow: createCodegenWorkflow({
       chatWriter: createWorkflowChatWriter(chatHistoryService),
       codeGenerator: createLangChainCodeGenerator(aiRegistry),
       qualityChecker: createLangChainQualityChecker(aiRegistry),
     }),
-    deploymentService,
     db,
     healthService: createHealthService(
       createDefaultHealthChecks(db, aiRegistry, redisClient, storageHealthProbe),
@@ -128,11 +90,7 @@ export const createDefaultDependencies = (): AppDependencies => {
     shutdown: createDefaultShutdown({
       database: db,
       ...(redisClient !== undefined && { redisClient }),
-      ...(screenshotQueue !== undefined && { screenshotQueue }),
-      ...(screenshotQueueEvents !== undefined && { screenshotQueueEvents }),
-      ...(screenshotWorker !== undefined && { screenshotWorker }),
     }),
-    staticDeployRootDir: `${process.cwd()}/tmp/code_deploy`,
     userService: createUserService(createUserRepository(db)),
   };
 };

@@ -3,7 +3,6 @@ import type { AppService } from "./app-module/index.js";
 import type { ChatHistoryService } from "./chat-history/index.js";
 import { env } from "./config/index.js";
 import type { PrismaDatabaseClient } from "./database/index.js";
-import type { DeploymentService } from "./deployment/index.js";
 import {
   createBodyLimitMiddleware,
   createCorsMiddleware,
@@ -31,7 +30,6 @@ export type AppDependencies = Readonly<{
   appService: AppService;
   chatHistoryService: ChatHistoryService;
   codegenWorkflow: CodegenWorkflow;
-  deploymentService: DeploymentService;
   db: PrismaDatabaseClient;
   healthService: HealthService;
   metricsService: MetricsService;
@@ -39,7 +37,6 @@ export type AppDependencies = Readonly<{
   requestLogger?: RequestLogger;
   sessionStore: SessionStore;
   shutdown?: () => Promise<void>;
-  staticDeployRootDir?: string;
   staticOutputRootDir?: string;
   userService: UserService;
 }>;
@@ -92,7 +89,6 @@ export const createApp = (deps: AppDependencies) => {
   api.route(
     "/",
     createStaticRoutes({
-      deployRootDir: deps.staticDeployRootDir ?? `${process.cwd()}/tmp/code_deploy`,
       outputRootDir: deps.staticOutputRootDir ?? `${process.cwd()}/tmp/code_output`,
     }),
   );

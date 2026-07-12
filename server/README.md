@@ -1,6 +1,6 @@
 # AI Codegen Server
 
-The AI Codegen Server is the backend service for the AI code generation platform. It is a TypeScript Hono application that manages users, applications, chat history, AI-assisted code generation, generated project persistence, deployment, screenshot capture, health checks, and operational logging.
+The AI Codegen Server is the backend service for the AI code generation platform. It is a TypeScript Hono application that manages users, applications, chat history, AI-assisted code generation, generated project persistence, static serving, health checks, and operational logging.
 
 The server is designed around strict runtime validation with Zod, strict TypeScript typing, local Ollama model execution, Prisma-backed persistence, and optional Redis-backed infrastructure.
 
@@ -19,9 +19,8 @@ The server is designed around strict runtime validation with Zod, strict TypeScr
 - [HTTP API Structure](#http-api-structure)
 - [Authentication and Sessions](#authentication-and-sessions)
 - [Code Generation Workflow](#code-generation-workflow)
-- [Deployment and Static Serving](#deployment-and-static-serving)
+- [Static Serving](#static-serving)
 - [Storage](#storage)
-- [Screenshot Capture](#screenshot-capture)
 - [Logging and Diagnostics](#logging-and-diagnostics)
 - [Health Checks](#health-checks)
 - [Development Commands](#development-commands)
@@ -51,7 +50,6 @@ The server coordinates the following responsibilities:
 - AI route classification across supported generation modes.
 - Prompt enhancement and model-based code quality checks.
 - Generated code parsing, validation, saving, and downloading.
-- Screenshot capture and cover image storage.
 - Health checks for database, Redis, model provider, and storage.
 
 Only local Ollama model providers are supported. Cloud model providers such as DeepSeek and OpenAI are intentionally not part of the current server runtime.
@@ -101,18 +99,7 @@ The workflow module coordinates AI generation in phases:
 - Run deterministic and model-based quality checks.
 - Parse generated code into project files.
 - Save generated files under `tmp/code_output`.
-- Build and finalize Vite projects when needed.
 - Emit structured Server-Sent Events.
-
-### Deployment
-
-The deployment module publishes generated projects. It:
-
-- Copies generated output from `tmp/code_output` to `tmp/code_deploy/<deployKey>`.
-- Serves deployed files from `/api/dist/<deployKey>/index.html`.
-- Serves nested assets such as `/api/dist/<deployKey>/assets/...`.
-- Captures screenshots after deployment.
-- Updates app deployment metadata.
 
 ## Architecture
 
@@ -164,40 +151,34 @@ serve({ fetch: app.fetch, port: env.PORT });
 server/
   prisma/
     schema.prisma              Prisma schema and generated client configuration
-  prompts/
-    vite-project-system-prompt.md
-                                System prompt used for Vite project generation
   src/
     ai/                         Model configuration, Ollama provider, routing, guardrails, tools
-    app-module/                 App domain service, repository, schemas, deployment integration
+    app-module/                 App domain service, repository, schemas
     chat-history/               Chat history domain service, repository, schemas
     common/                     Response envelopes, errors, pagination, ID and prompt schemas
     config/                     Environment schemas and parsed runtime env
     cutover/                    Cutover evidence utilities
     database/                   Prisma client construction
-    deployment/                 Deploy service, static build copy, screenshots, storage adapters
+    deployment/                 Storage adapters, static file serving
     middleware/                 Error handling and security middleware
     migration/                  Legacy snapshot migration utilities
     observability/              Health checks, metrics, request context
-    project/                    Code parsing, saving, building, downloads, static file service
+    project/                    Code parsing, saving, downloads, static file service
     rate-limit/                 In-memory and Redis-backed rate limiting
     routes/                     Hono route modules and route tests
     session/                    Session schema, stores, Hono env, auth middleware
     test-support/               Shared test factories
     user/                       User domain service, repository, schemas
-    workflow/                   AI workflow, SSE events, Vite diagnostics logging
+    workflow/                   AI workflow, SSE events
     app.ts                      Hono app factory
     app-dependencies.ts         Production dependency graph
     index.ts                    Node server entry point
   tmp/
     code_output/                Generated project output
-    code_deploy/                Deployed static Vite builds
     storage/                    Local object storage root when enabled
-  logs/
-    vite-project-*/             Vite generation and deployment diagnostics
 ```
 
-Generated artifacts, temporary output, deployed static files, and log directories should not be treated as source code.
+Generated artifacts and temporary output should not be treated as source code.
 
 ## Runtime Requirements
 
@@ -207,13 +188,12 @@ Recommended runtime components:
 - pnpm `10.33.0`.
 - PostgreSQL for Prisma persistence.
 - Ollama for local LLM inference.
-- Redis for production sessions, rate limiting, and screenshot queues.
-- Chromium or another Puppeteer-compatible browser for screenshot capture.
+- Redis for production sessions and rate limiting.
 - MinIO if production object storage is required.
 
-Local development can run without Redis. If `REDIS_URL` is omitted, the server falls back to in-memory sessions and rate limiting, and screenshots run directly instead of through BullMQ.
+Local development can run without Redis. If `REDIS_URL` is omitted, the server falls back to in-memory sessions and rate limiting.
 
-Production should use Redis, external object storage, strong secrets, and a configured browser executable.
+Production should use Redis, external object storage, and strong secrets.
 
 ## Quick Start
 
@@ -309,15 +289,6 @@ Use `server/.env.example` as the canonical template.
 | `RATE_LIMIT_AI_GENERATION_MAX`            | `10`    | Maximum generation requests per window. |
 | `RATE_LIMIT_AI_GENERATION_WINDOW_SECONDS` | `60`    | Rate-limit window size in seconds.      |
 
-### Screenshot Capture
-
-| Variable                             | Default | Description                                                           |
-| ------------------------------------ | ------- | --------------------------------------------------------------------- |
-| `SCREENSHOT_BROWSER_EXECUTABLE_PATH` | none    | Chromium executable path used by Puppeteer. Production requires this. |
-| `SCREENSHOT_TIMEOUT_MS`              | `30000` | Maximum screenshot capture time.                                      |
-| `SCREENSHOT_VIEWPORT_WIDTH`          | `1280`  | Screenshot viewport width.                                            |
-| `SCREENSHOT_VIEWPORT_HEIGHT`         | `720`   | Screenshot viewport height.                                           |
-
 ### AI Model Configuration
 
 Only `ollama` is accepted as a provider value.
@@ -331,7 +302,7 @@ Only `ollama` is accepted as a provider value.
 | `AI_ROUTE_TEMPERATURE`     | `0`                                                 | Route-classification sampling temperature.                                                         |
 | `AI_STREAMING_PROVIDER`    | `ollama`                                            | Provider used for streaming code generation.                                                       |
 | `AI_STREAMING_MODEL`       | `qwen3.5`                                           | Model used for streaming code generation.                                                          |
-| `AI_STREAMING_MAX_TOKENS`  | `8192` in schema, commonly raised in `.env.example` | Maximum streaming output tokens. Large Vite projects often require a higher value such as `65536`. |
+| `AI_STREAMING_MAX_TOKENS`  | `8192` in schema, commonly raised in `.env.example` | Maximum streaming output tokens. Large projects often require a higher value such as `65536`. |
 | `AI_STREAMING_TEMPERATURE` | `0.2`                                               | Streaming model sampling temperature.                                                              |
 | `AI_REASONING_PROVIDER`    | `ollama`                                            | Provider used for prompt enhancement and reasoning.                                                |
 | `AI_REASONING_MODEL`       | `qwen2.5`                                           | Model used for reasoning.                                                                          |
@@ -342,11 +313,10 @@ Only `ollama` is accepted as a provider value.
 | `AI_QUALITY_MAX_TOKENS`    | `4096`                                              | Maximum quality-check output tokens.                                                               |
 | `AI_QUALITY_TEMPERATURE`   | `0.2`                                               | Quality-check sampling temperature.                                                                |
 
-### Deployment and Storage
+### Storage
 
 | Variable                        | Default                                | Description                                                        |
 | ------------------------------- | -------------------------------------- | ------------------------------------------------------------------ |
-| `CODEGEN_DEPLOY_HOST`           | `http://localhost:3000/api`            | Public API host used to construct deployed project URLs.           |
 | `STORAGE_DRIVER`                | `local`                                | Storage backend. Supported values are `local` and `minio`.         |
 | `STORAGE_LOCAL_ROOT_DIR`        | `tmp/storage`                          | Local filesystem storage root.                                     |
 | `STORAGE_LOCAL_PUBLIC_BASE_URL` | `http://localhost:3000/storage`        | Public base URL for local storage objects.                         |
@@ -369,7 +339,6 @@ When `NODE_ENV=production`, the server rejects unsafe configuration:
 - `REDIS_URL` must be configured.
 - `STORAGE_DRIVER` must not be `local`.
 - MinIO credentials must be configured.
-- `SCREENSHOT_BROWSER_EXECUTABLE_PATH` must be configured.
 
 ## Database
 
@@ -413,14 +382,11 @@ When `REDIS_URL` is configured, Redis backs:
 
 - Session storage.
 - AI generation rate limiting.
-- BullMQ screenshot queues.
-- Screenshot queue failure observation.
 
 When `REDIS_URL` is not configured, the server falls back to:
 
 - In-memory session storage.
 - In-memory rate limiting.
-- Direct screenshot capture without a queue.
 
 Do not use in-memory fallbacks for horizontally scaled production deployments.
 
@@ -443,7 +409,7 @@ ollama pull qwen2.5
 ollama pull qwen3.5
 ```
 
-The streaming model must have enough output capacity for complete Vite projects. If generated Markdown code fences are often unterminated and Vite files are missing, inspect the final stream chunk metadata in `logs/vite-project-*/events.ndjson`. A `done_reason` of `length` usually means `AI_STREAMING_MAX_TOKENS` is too low for the requested project size.
+The streaming model must have enough output capacity for complete generated projects. If generated Markdown code fences are often unterminated and files are missing, inspect the final stream chunk metadata. A `done_reason` of `length` usually means `AI_STREAMING_MAX_TOKENS` is too low for the requested project size.
 
 ## HTTP API Structure
 
@@ -464,14 +430,12 @@ Route groups:
 ```text
 GET/POST /api/...                    Health, static files, and grouped routes
 /api/user/...                        User registration, login, logout, current user, admin user APIs
-/api/app/...                         App CRUD, app listing, codegen streaming, deployment
+/api/app/...                         App CRUD, app listing, codegen streaming
 /api/app/admin/...                   Admin app management
 /api/management/...                  Operational management endpoints
 /api/chat-history/...                App and admin chat history APIs
 /api/workflow/...                    Workflow demo routes
 /api/static/...                      Generated static preview files
-/api/dist/:deployKey/index.html      Deployed Vite project entry point
-/api/dist/:deployKey/assets/...      Deployed Vite project assets
 ```
 
 Most JSON endpoints return a normalized success response envelope built by `createSuccessResponse`.
@@ -522,8 +486,7 @@ Typical phase order:
 8. Check generated output quality
 9. Parse generated project files
 10. Save generated files to tmp/code_output
-11. Build or finalize the project
-12. Emit done or business-error SSE event
+11. Emit done or business-error SSE event
 ```
 
 Supported code generation types are defined by Prisma and mirrored in schemas:
@@ -531,52 +494,7 @@ Supported code generation types are defined by Prisma and mirrored in schemas:
 - `VANILLA_HTML`
 - `MULTI_FILES`
 
-## Vite Project Generation
-
-Vite project generation is the most advanced generation mode. It expects the model to produce a complete project as fenced Markdown file blocks.
-
-Preferred file block format:
-
-````markdown
-```tsx filename=./src/App.tsx
-export default function App() {
-  return <main>Hello</main>;
-}
-```
-````
-
-Legacy JSON file write blocks are also supported:
-
-```json
-{
-  "filepath": "./src/App.tsx",
-  "content": "export default function App() { return <main>Hello</main>; }"
-}
-```
-
-Project parsing is implemented in:
-
-```text
-src/project/code-parser.ts
-src/project/markdown-code-blocks.ts
-src/project/vite-project-output-format.ts
-```
-
-Markdown code block extraction uses `marked.lexer` instead of hand-written fenced block regular expressions.
-
-The parser validates project-level requirements and reports errors before saving incomplete or invalid output.
-
-Important safeguards:
-
-- Unterminated fenced code blocks are detected before model-based quality checks.
-- Vite output completeness is checked deterministically.
-- Quality scores are treated as percentage integers from `0` to `100`.
-- `filename=...` metadata blocks are parsed as direct file blocks.
-- Generated files are saved only after parsing succeeds.
-
-If output is truncated, the workflow may log a generated code artifact but skip file saving because the project cannot be parsed safely.
-
-## Deployment and Static Serving
+## Static Serving
 
 Generated project output is saved under:
 
@@ -584,33 +502,13 @@ Generated project output is saved under:
 tmp/code_output/
 ```
 
-Deployed Vite builds are copied under:
+Static preview files are served through:
 
 ```text
-tmp/code_deploy/<deployKey>/
+/api/static/...
 ```
 
-The deployed entry URL uses `index.html` explicitly:
-
-```text
-http://localhost:3000/api/dist/<deployKey>/index.html
-```
-
-Using `index.html` in the URL is important because Vite often emits relative asset references such as:
-
-```html
-<script type="module" crossorigin src="./assets/index.js"></script>
-<link rel="stylesheet" crossorigin href="./assets/index.css" />
-```
-
-If the browser loads `/api/dist/<deployKey>` without a trailing file path, relative `./assets/...` URLs can resolve incorrectly. The server and client should use `/api/dist/<deployKey>/index.html` for deployed Vite previews.
-
-Static route behavior:
-
-- `/api/static/...` serves generated preview files from `tmp/code_output`.
-- `/api/dist/<deployKey>/index.html` serves deployed Vite HTML.
-- `/api/dist/<deployKey>/assets/...` serves built JS, CSS, and other assets.
-- Asset requests should return the actual asset content, not the HTML fallback.
+The static route serves generated preview files from `tmp/code_output`.
 
 ## Storage
 
@@ -636,48 +534,11 @@ src/deployment/storage-adapter.ts
 src/deployment/minio-storage-adapter.ts
 ```
 
-## Screenshot Capture
-
-Screenshots are captured after deployment to create visual app covers or deployment previews.
-
-The screenshot pipeline can run in two modes:
-
-- Direct mode when Redis is not configured.
-- Queued mode with BullMQ when Redis is configured.
-
-Relevant files:
-
-```text
-src/app-screenshot.ts
-src/deployment/screenshot-capturer.ts
-src/deployment/screenshot-service.ts
-src/deployment/screenshot-queue.ts
-```
-
-Production requires `SCREENSHOT_BROWSER_EXECUTABLE_PATH`.
-
 ## Logging and Diagnostics
 
 General request logging is managed through request context middleware and logger dependencies.
 
-Detailed Vite diagnostics are written under:
-
-```text
-logs/vite-project-<appId>-<timestamp>/
-```
-
-Typical artifacts include:
-
-```text
-events.ndjson
-attempt-1-generated-code.md
-attempt-1-partial-generated-code.md
-attempt-1-quality-check.txt
-workflow-error.json
-deployment-build.log
-```
-
-The exact artifact set depends on how far the workflow progresses.
+Diagnostics are written to the configured log output.
 
 Important diagnostics captured during streaming:
 
@@ -803,8 +664,7 @@ Important test categories:
 - Route contract tests.
 - Compatibility and fixture parity tests.
 - Workflow event tests.
-- Vite parser tests.
-- Deployment and static route tests.
+- Code parser tests.
 - Storage adapter tests.
 - Session and user tests.
 - ID schema tests for BigInt-safe transport behavior.
@@ -833,11 +693,9 @@ Production checklist:
 - Override `SESSION_SECRET`.
 - Use `STORAGE_DRIVER=minio`.
 - Configure MinIO credentials and bucket.
-- Configure `SCREENSHOT_BROWSER_EXECUTABLE_PATH`.
 - Ensure Ollama is reachable from the server.
 - Pull all configured Ollama models.
 - Run `pnpm db:deploy`.
-- Ensure `CODEGEN_DEPLOY_HOST` matches the public API host.
 
 ## Migration and Cutover Utilities
 
@@ -937,12 +795,6 @@ Check:
 
 ### Streaming Stops with Incomplete Code Fences
 
-Inspect:
-
-```text
-logs/vite-project-*/events.ndjson
-```
-
 If the final chunk has:
 
 ```json
@@ -962,51 +814,9 @@ Possible causes:
 - Streaming failed before any output was produced.
 - The generated Markdown had no parseable file blocks.
 - A fenced code block was unterminated.
-- A generated Vite project failed validation.
 - The parser rejected invalid file write blocks.
 
-Check the matching `logs/vite-project-*` directory. If only generated code exists and no save artifacts exist, parsing likely failed before file persistence.
-
-### Vite Build Succeeds but Deployed Assets Return HTML
-
-Expected asset paths:
-
-```text
-/api/dist/<deployKey>/assets/<file>.js
-/api/dist/<deployKey>/assets/<file>.css
-```
-
-If assets return `index.html`, inspect static route behavior and verify the deployed asset files exist under:
-
-```text
-tmp/code_deploy/<deployKey>/assets/
-```
-
-### Browser Requests `/api/dist/assets/...` Instead of `/api/dist/<deployKey>/assets/...`
-
-Ensure the preview URL includes `index.html`:
-
-```text
-/api/dist/<deployKey>/index.html
-```
-
-Do not use:
-
-```text
-/api/dist/<deployKey>
-```
-
-Relative Vite asset URLs resolve differently depending on the loaded document URL.
-
-### Screenshot Capture Fails
-
-Check:
-
-- `SCREENSHOT_BROWSER_EXECUTABLE_PATH` points to a valid browser.
-- The deployed URL is reachable from the server process.
-- Timeout and viewport settings are appropriate.
-- Redis queue logs if queued screenshot mode is active.
-- Storage health if screenshot upload fails.
+If only generated code exists and no save artifacts exist, parsing likely failed before file persistence.
 
 ### Health Check Fails on Model Probe
 
@@ -1021,9 +831,9 @@ If it should be available, verify `OLLAMA_BASE_URL` and local models.
 ## Maintenance Notes
 
 - Keep `server/.env.example` synchronized with `src/config/env.schema.ts` and `src/config/ai-env.schema.ts`.
-- Keep frontend runtime URLs aligned with `API_PREFIX` and `CODEGEN_DEPLOY_HOST`.
+- Keep frontend runtime URLs aligned with `API_PREFIX`.
 - Rebuild `dist/` after provider or schema changes so compiled output does not contain stale code.
 - Treat `tmp/` and `logs/` as operational artifacts, not source.
-- Prefer adding focused regression tests when changing parsing, deployment, ID schemas, or static serving.
-- If model output format changes, update both the Vite prompt and parser tests.
+- Prefer adding focused regression tests when changing parsing, ID schemas, or static serving.
+- If model output format changes, update both the system prompt and parser tests.
 - If adding new external inputs, add Zod schemas at the boundary before using the values.

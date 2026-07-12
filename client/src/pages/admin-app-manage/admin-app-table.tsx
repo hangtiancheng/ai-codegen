@@ -70,16 +70,6 @@ function appColumns(
     },
     { key: "priority", header: "Priority", render: (app) => app.priority ?? 0 },
     {
-      key: "deployed",
-      header: "Deployed",
-      render: (app) =>
-        app.deployTime ? (
-          formatTimestamp(app.deployTime)
-        ) : (
-          <Badge variant="neutral">Not deployed</Badge>
-        ),
-    },
-    {
       key: "creator",
       header: "Creator",
       render: (app) => app.user?.username ?? app.userId,

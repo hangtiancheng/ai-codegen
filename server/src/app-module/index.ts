@@ -1,14 +1,9 @@
-export {
-  AWESOME_APP_PRIORITY,
-  DEPLOY_KEY_LENGTH,
-  generateDeployKey,
-} from "./app.constants.js";
+export { AWESOME_APP_PRIORITY } from "./app.constants.js";
 export { toAppVo } from "./app.mapper.js";
 export type {
   AppAddRequest,
   AppAdminUpdateRequest,
   AppChatCodegenQuery,
-  AppDeployRequest,
   AppDownloadParam,
   AppEntity,
   AppPageQuery,
@@ -19,7 +14,6 @@ export {
   appAddSchema,
   appAdminUpdateSchema,
   appChatCodegenQuerySchema,
-  appDeploySchema,
   appDownloadParamSchema,
   appEntitySchema,
   appIdBodySchema,
