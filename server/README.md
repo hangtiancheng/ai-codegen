@@ -1,8 +1,8 @@
 # AI Codegen Server
 
-The AI Codegen Server is the backend service for the AI code generation platform. It is a TypeScript Hono application that manages users, applications, chat history, AI-assisted code generation, generated project persistence, Vite project deployment, screenshot capture, health checks, and operational logging.
+The AI Codegen Server is the backend service for the AI code generation platform. It is a TypeScript Hono application that manages users, applications, chat history, AI-assisted code generation, generated project persistence, deployment, screenshot capture, health checks, and operational logging.
 
-The server is designed around strict runtime validation with Zod, strict TypeScript typing, local Ollama model execution, Prisma-backed persistence, optional Redis-backed infrastructure, and file-based diagnostics for complex Vite project generation workflows.
+The server is designed around strict runtime validation with Zod, strict TypeScript typing, local Ollama model execution, Prisma-backed persistence, and optional Redis-backed infrastructure.
 
 ## Table of Contents
 
@@ -19,7 +19,6 @@ The server is designed around strict runtime validation with Zod, strict TypeScr
 - [HTTP API Structure](#http-api-structure)
 - [Authentication and Sessions](#authentication-and-sessions)
 - [Code Generation Workflow](#code-generation-workflow)
-- [Vite Project Generation](#vite-project-generation)
 - [Deployment and Static Serving](#deployment-and-static-serving)
 - [Storage](#storage)
 - [Screenshot Capture](#screenshot-capture)
@@ -51,11 +50,9 @@ The server coordinates the following responsibilities:
 - Streaming AI code generation over Server-Sent Events.
 - AI route classification across supported generation modes.
 - Prompt enhancement and model-based code quality checks.
-- Generated code parsing, validation, saving, building, and downloading.
-- Vite project deployment into static deploy directories.
+- Generated code parsing, validation, saving, and downloading.
 - Screenshot capture and cover image storage.
 - Health checks for database, Redis, model provider, and storage.
-- Detailed Vite generation and deployment logs under `logs/`.
 
 Only local Ollama model providers are supported. Cloud model providers such as DeepSeek and OpenAI are intentionally not part of the current server runtime.
 
@@ -109,15 +106,13 @@ The workflow module coordinates AI generation in phases:
 
 ### Deployment
 
-The deployment module builds and publishes generated projects. For Vite projects it:
+The deployment module publishes generated projects. It:
 
-- Runs the generated project build.
-- Copies the built `dist` directory to `tmp/code_deploy/<deployKey>`.
+- Copies generated output from `tmp/code_output` to `tmp/code_deploy/<deployKey>`.
 - Serves deployed files from `/api/dist/<deployKey>/index.html`.
-- Serves nested assets such as `/api/dist/<deployKey>/assets/index.js`.
+- Serves nested assets such as `/api/dist/<deployKey>/assets/...`.
 - Captures screenshots after deployment.
 - Updates app deployment metadata.
-- Writes deployment logs into the same Vite diagnostics system.
 
 ## Architecture
 
@@ -535,9 +530,6 @@ Supported code generation types are defined by Prisma and mirrored in schemas:
 
 - `VANILLA_HTML`
 - `MULTI_FILES`
-- `VITE_PROJECT`
-
-The workflow writes detailed logs for `VITE_PROJECT` runs because those projects are more complex and require parsing, dependency installation assumptions, build validation, static deployment, and screenshot capture.
 
 ## Vite Project Generation
 

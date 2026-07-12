@@ -1,5 +1,147 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# API Contract Review
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `next/node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+Base path: the server mounts routes under `/${API_PREFIX}` and defaults `API_PREFIX` to `api`; the client defaults `VITE_API_BASE_URL` to `http://localhost:3000/api`.
+
+## Findings
+
+- No frontend-to-backend path mismatch was found for the current client API calls.
+- Several backend routes are server-only because the current frontend does not call them.
+
+## API
+
+- `GET /api/health`
+  - server: [health.ts](./server/src/routes/health.ts)
+  - client: none
+  - status: server-only.
+- `POST /api/user/register`
+  - server: [user-routes.ts](./server/src/routes/user-routes.ts)
+  - client: [user-api.ts](./client/src/shared/api/user-api.ts)
+  - status: aligned.
+- `POST /api/user/login`
+  - server: [user-routes.ts](./server/src/routes/user-routes.ts)
+  - client: [user-api.ts](./client/src/shared/api/user-api.ts)
+  - status: aligned.
+- `POST /api/user/logout`
+  - server: [user-routes.ts](./server/src/routes/user-routes.ts)
+  - client: [user-api.ts](./client/src/shared/api/user-api.ts)
+  - status: aligned.
+- `GET /api/user/get/login`
+  - server: [user-routes.ts](./server/src/routes/user-routes.ts)
+  - client: [user-api.ts](./client/src/shared/api/user-api.ts)
+  - status: aligned.
+- `GET /api/user/get`
+  - server: [user-routes.ts](./server/src/routes/user-routes.ts)
+  - client: none
+  - status: server-only.
+- `GET /api/user/get/vo`
+  - server: [user-routes.ts](./server/src/routes/user-routes.ts)
+  - client: none
+  - status: server-only.
+- `POST /api/user/add`
+  - server: [user-routes.ts](./server/src/routes/user-routes.ts)
+  - client: none
+  - status: server-only.
+- `POST /api/user/update`
+  - server: [user-routes.ts](./server/src/routes/user-routes.ts)
+  - client: [user-api.ts](./client/src/shared/api/user-api.ts)
+  - status: aligned.
+- `POST /api/user/delete`
+  - server: [user-routes.ts](./server/src/routes/user-routes.ts)
+  - client: [user-api.ts](./client/src/shared/api/user-api.ts)
+  - status: aligned.
+- `POST /api/user/list/page/vo`
+  - server: [user-routes.ts](./server/src/routes/user-routes.ts)
+  - client: [user-api.ts](./client/src/shared/api/user-api.ts)
+  - status: aligned.
+- `GET /api/app/chat/codegen`
+  - server: [app-routes.ts](./server/src/routes/app-routes.ts)
+  - client: [chat-stream-url.ts](./client/src/pages/app-chat/chat-stream-url.ts), [endpoints.ts](./client/src/shared/config/endpoints.ts)
+  - status: aligned.
+- `POST /api/app/add`
+  - server: [app-routes.ts](./server/src/routes/app-routes.ts)
+  - client: [app-api.ts](./client/src/shared/api/app-api.ts)
+  - status: aligned.
+- `POST /api/app/update`
+  - server: [app-routes.ts](./server/src/routes/app-routes.ts)
+  - client: [app-api.ts](./client/src/shared/api/app-api.ts)
+  - status: aligned.
+- `POST /api/app/delete`
+  - server: [app-routes.ts](./server/src/routes/app-routes.ts)
+  - client: [app-api.ts](./client/src/shared/api/app-api.ts)
+  - status: aligned.
+- `POST /api/app/deploy`
+  - server: [app-deployment-routes.ts](./server/src/routes/app-deployment-routes.ts)
+  - client: [app-api.ts](./client/src/shared/api/app-api.ts)
+  - status: aligned.
+- `GET /api/app/download/:appId`
+  - server: [app-deployment-routes.ts](./server/src/routes/app-deployment-routes.ts)
+  - client: [app-download.ts](./client/src/shared/api/app-download.ts)
+  - status: aligned.
+- `GET /api/app/get/vo`
+  - server: [app-routes.ts](./server/src/routes/app-routes.ts)
+  - client: [app-api.ts](./client/src/shared/api/app-api.ts)
+  - status: aligned.
+- `POST /api/app/my/list/page/vo`
+  - server: [app-routes.ts](./server/src/routes/app-routes.ts)
+  - client: [app-api.ts](./client/src/shared/api/app-api.ts)
+  - status: aligned.
+- `POST /api/app/awesome/list/page/vo`
+  - server: [app-routes.ts](./server/src/routes/app-routes.ts)
+  - client: [app-api.ts](./client/src/shared/api/app-api.ts), [endpoints.ts](./client/src/shared/config/endpoints.ts)
+  - status: aligned.
+- `POST /api/app/admin/delete`
+  - server: [app-admin-routes.ts](./server/src/routes/app-admin-routes.ts)
+  - client: [app-api.ts](./client/src/shared/api/app-api.ts)
+  - status: aligned.
+- `POST /api/app/admin/update`
+  - server: [app-admin-routes.ts](./server/src/routes/app-admin-routes.ts)
+  - client: [app-api.ts](./client/src/shared/api/app-api.ts)
+  - status: aligned.
+- `POST /api/app/admin/list/page/vo`
+  - server: [app-admin-routes.ts](./server/src/routes/app-admin-routes.ts)
+  - client: [app-api.ts](./client/src/shared/api/app-api.ts)
+  - status: aligned.
+- `GET /api/app/admin/get/vo`
+  - server: [app-admin-routes.ts](./server/src/routes/app-admin-routes.ts)
+  - client: none
+  - status: server-only.
+- `GET /api/chat-history/app/:appId`
+  - server: [chat-history-routes.ts](./server/src/routes/chat-history-routes.ts)
+  - client: [chat-history-api.ts](./client/src/shared/api/chat-history-api.ts), [endpoints.ts](./client/src/shared/config/endpoints.ts)
+  - status: aligned.
+- `POST /api/chat-history/admin/list/page/vo`
+  - server: [chat-history-routes.ts](./server/src/routes/chat-history-routes.ts)
+  - client: [chat-history-api.ts](./client/src/shared/api/chat-history-api.ts), [endpoints.ts](./client/src/shared/config/endpoints.ts)
+  - status: aligned.
+- `GET /api/management/prometheus`
+  - server: [management-routes.ts](./server/src/routes/management-routes.ts)
+  - client: none
+  - status: server-only.
+- `GET /api/management/health`
+  - server: [management-routes.ts](./server/src/routes/management-routes.ts)
+  - client: none
+  - status: server-only.
+- `GET /api/management/info`
+  - server: [management-routes.ts](./server/src/routes/management-routes.ts)
+  - client: none
+  - status: server-only.
+- `POST /api/workflow/execute`
+  - server: [workflow-demo-routes.ts](./server/src/routes/workflow-demo-routes.ts)
+  - client: none
+  - status: server-only.
+- `GET /api/workflow/execute-flux`
+  - server: [workflow-demo-routes.ts](./server/src/routes/workflow-demo-routes.ts)
+  - client: none
+  - status: server-only.
+- `GET /api/workflow/execute-sse`
+  - server: [workflow-demo-routes.ts](./server/src/routes/workflow-demo-routes.ts)
+  - client: none
+  - status: server-only.
+- `GET /api/dist/:deployKey/*`
+  - server: [static-routes.ts](./server/src/routes/static-routes.ts)
+  - client: [urls.ts](./client/src/shared/config/urls.ts)
+  - status: aligned through `VITE_DEPLOY_DOMAIN`.
+- `GET /api/static/*`
+  - server: [static-routes.ts](./server/src/routes/static-routes.ts)
+  - client: [urls.ts](./client/src/shared/config/urls.ts)
+  - status: aligned through static preview URLs.

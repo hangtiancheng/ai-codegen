@@ -1,5 +1,4 @@
 import type { CodegenType } from "../generated/prisma/enums.js";
-import type { ViteCodegenLogger } from "./vite-codegen-logger.js";
 
 export type CodegenStreamMetadata = Readonly<{
   response_metadata?: Readonly<{
@@ -41,7 +40,6 @@ export type CodegenWorkflowDeps = Readonly<{
   maxAttempts?: number;
   outputRootDir?: string;
   qualityChecker: QualityChecker;
-  viteCodegenLogger?: ViteCodegenLogger;
 }>;
 
 export type ExecuteWorkflowInput = Readonly<{

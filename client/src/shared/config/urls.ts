@@ -1,8 +1,4 @@
-import {
-  codegenTypeSchema,
-  type AppId,
-  type CodegenType,
-} from "@/shared/schemas";
+import { type AppId, type CodegenType } from "@/shared/schemas";
 import { getRuntimeEnv } from "./runtime-env";
 
 export function getApiBaseUrl(): string {
@@ -25,7 +21,6 @@ export function getStaticPreviewUrl(
   codegenType: CodegenType,
   appId: AppId,
 ): string {
-  const validated = codegenTypeSchema.parse(codegenType);
-  const base = `${getStaticBaseUrl()}/${validated.toLocaleLowerCase()}_${appId}`;
-  return validated === "VITE_PROJECT" ? `${base}/dist/` : `${base}/`;
+  const base = `${getStaticBaseUrl()}/${codegenType.toLocaleLowerCase()}_${appId}`;
+  return `${base}/`;
 }

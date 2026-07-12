@@ -15,12 +15,6 @@ export {
   createNoopQualityChecker,
   createStaticCodeGenerator,
 } from "./workflow-ai.js";
-export {
-  createFileViteCodegenLogger,
-  createNoopViteCodegenLogger,
-  type ViteCodegenLogger,
-  type ViteCodegenLogSession,
-} from "./vite-codegen-logger.js";
 export { createWorkflowChatWriter } from "./workflow-chat-writer.js";
 export {
   type WorkflowSseEvent,

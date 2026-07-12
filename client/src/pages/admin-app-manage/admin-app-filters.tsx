@@ -59,7 +59,6 @@ export function AdminAppFilters({
           <option value="">All types</option>
           <option value="VANILLA_HTML">Vanilla HTML</option>
           <option value="MULTI_FILES">Multi-files</option>
-          <option value="VITE_PROJECT">Vite project</option>
         </select>
       </label>
       <div className="flex items-end gap-2 md:col-span-4">
@@ -73,11 +72,7 @@ export function AdminAppFilters({
 }
 
 function parseCodegen(value: string): AdminAppFilterValues["codegenType"] {
-  if (
-    value === "VANILLA_HTML" ||
-    value === "MULTI_FILES" ||
-    value === "VITE_PROJECT"
-  ) {
+  if (value === "VANILLA_HTML" || value === "MULTI_FILES") {
     return value;
   }
   return "";

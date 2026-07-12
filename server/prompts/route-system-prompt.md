@@ -6,7 +6,7 @@ Do not include markdown fences, explanations, comments, or additional fields.
 
 ## Available code generation methods
 
-VANILLA_HTML, MULTI_FILES, or VITE_PROJECT
+VANILLA_HTML or MULTI_FILES
 
 ### VANILLA_HTML
 
@@ -15,7 +15,3 @@ VANILLA_HTML, MULTI_FILES, or VITE_PROJECT
 ### MULTI_FILES
 
 **Best for:** Projects needing separate HTML, CSS, and JS files
-
-### VITE_PROJECT
-
-**Best for:** Projects needing a frontend build tool (Vite **ONLY**) with a frontend framework (react **ONLY**)

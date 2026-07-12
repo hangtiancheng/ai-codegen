@@ -47,7 +47,6 @@ const splitDeployPath = (value: string) => {
 const outputKeyPrefixMap: Readonly<Record<string, string>> = {
   html: "VANILLA_HTML",
   MULTI_FILES: "MULTI_FILES",
-  VITE_PROJECT: "VITE_PROJECT",
 };
 
 const normalizeOutputKey = (outputKey: string): string => {

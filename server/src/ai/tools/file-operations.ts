@@ -14,14 +14,7 @@ const IGNORED_DIRS = new Set([
   "coverage",
 ]);
 
-const PROTECTED_FILES = new Set([
-  "package.json",
-  "vite.config.ts",
-  "vite.config.js",
-  "index.html",
-  "tsconfig.json",
-  "tsconfig.node.json",
-]);
+const PROTECTED_FILES = new Set(["index.html"]);
 
 export const writeProjectFile = async (
   workDir: string,

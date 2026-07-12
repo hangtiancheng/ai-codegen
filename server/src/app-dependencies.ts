@@ -38,7 +38,6 @@ import { createInMemorySessionStore, createRedisSessionStore } from "./session/i
 import { createUserRepository, createUserService } from "./user/index.js";
 import {
   createCodegenWorkflow,
-  createFileViteCodegenLogger,
   createLangChainCodeGenerator,
   createLangChainQualityChecker,
   createWorkflowChatWriter,
@@ -70,7 +69,6 @@ export const createDefaultDependencies = (): AppDependencies => {
   const appRepository: AppRepository = createAppRepository(db);
   const chatHistoryService = createChatHistoryService(createChatHistoryRepository(db));
   const aiRegistry = createAiModelRegistry(buildAiModelRegistryConfigFromEnv(env));
-  const viteProjectLogger = createFileViteCodegenLogger(`${process.cwd()}/logs`);
   const { healthProbe: storageHealthProbe, storage } = createConfiguredStorage();
   const directScreenshotJob = createScreenshotJob(
     createDefaultScreenshotCapturer(),
@@ -98,8 +96,6 @@ export const createDefaultDependencies = (): AppDependencies => {
   const deploymentService = createDeploymentService(
     { deployHost: env.CODEGEN_DEPLOY_HOST },
     screenshotJob,
-    undefined,
-    viteProjectLogger,
   );
   const rateLimitStore =
     redisClient === undefined
@@ -118,7 +114,6 @@ export const createDefaultDependencies = (): AppDependencies => {
       chatWriter: createWorkflowChatWriter(chatHistoryService),
       codeGenerator: createLangChainCodeGenerator(aiRegistry),
       qualityChecker: createLangChainQualityChecker(aiRegistry),
-      viteCodegenLogger: viteProjectLogger,
     }),
     deploymentService,
     db,

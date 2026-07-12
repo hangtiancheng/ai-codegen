@@ -10,7 +10,6 @@ const readPrompt = (filename: string): string =>
 export const SYSTEM_PROMPTS: Readonly<Record<CodegenType, string>> = {
   [CodegenType.MULTI_FILES]: readPrompt("multi-files-system-prompt.md"),
   [CodegenType.VANILLA_HTML]: readPrompt("vanilla-html-system-prompt.md"),
-  [CodegenType.VITE_PROJECT]: readPrompt("vite-project-system-prompt.md"),
 };
 
 export const ROUTE_SYSTEM_PROMPT: string = readPrompt("route-system-prompt.md");

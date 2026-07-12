@@ -1,25 +1,24 @@
-import { z } from "zod";
 import { ErrorCode, HttpError } from "../common/index.js";
 import { CodegenType } from "../generated/prisma/enums.js";
 import { extractMarkdownCodeBlocks } from "./markdown-code-blocks.js";
-import { filenameFromFence, hasUnsupportedFileWriteOutput } from "./vite-project-output-format.js";
 
-const fileWriteSchema = z.object({
-  content: z.string(),
-  filepath: z.string().min(1),
-});
+export const parsedProjectFileSchema = {
+  content: "string",
+  filename: "string",
+} as const;
 
-export const parsedProjectFileSchema = z.object({
-  content: z.string(),
-  filename: z.string().min(1),
-});
+export const parsedProjectSchema = {
+  files: "array",
+} as const;
 
-export const parsedProjectSchema = z.object({
-  files: z.array(parsedProjectFileSchema).min(1),
-});
+export type ParsedProjectFile = Readonly<{
+  content: string;
+  filename: string;
+}>;
 
-export type ParsedProject = z.infer<typeof parsedProjectSchema>;
-export type ParsedProjectFile = z.infer<typeof parsedProjectFileSchema>;
+export type ParsedProject = Readonly<{
+  files: readonly ParsedProjectFile[];
+}>;
 
 const requireContent = (content: string): string => {
   const trimmed = content.trim();
@@ -69,55 +68,11 @@ const parseMultiFiles = (content: string): ParsedProject => {
   };
 };
 
-const parseFileWriteBlock = (body: string): ParsedProjectFile | undefined => {
-  const raw: unknown = JSON.parse(body);
-  const parsed = fileWriteSchema.parse(raw);
-  return { content: parsed.content, filename: parsed.filepath };
-};
-
-const parseViteProject = (content: string): ParsedProject => {
-  const files: ParsedProjectFile[] = [];
-  const invalidJsonBlocks: string[] = [];
-  for (const { body, language, meta } of extractMarkdownCodeBlocks(content)) {
-    const filename = filenameFromFence(language, meta);
-    if (filename !== undefined) {
-      files.push({ content: body.trim(), filename });
-      continue;
-    }
-    if (language.toLowerCase() === "json") {
-      try {
-        const file = parseFileWriteBlock(body);
-        if (file !== undefined) files.push(file);
-      } catch (error) {
-        invalidJsonBlocks.push(error instanceof Error ? error.message : String(error));
-      }
-    }
-  }
-  if (invalidJsonBlocks.length > 0) {
-    throw new HttpError(
-      ErrorCode.ParamsError,
-      `Invalid Vite project JSON file block: ${invalidJsonBlocks[0]}`,
-    );
-  }
-  if (files.length === 0) {
-    if (hasUnsupportedFileWriteOutput(content)) {
-      throw new HttpError(
-        ErrorCode.ParamsError,
-        "Unsupported Vite project FileWrite pseudo-code output; emit each file as a standalone fenced JSON block with filepath and content",
-      );
-    }
-    throw new HttpError(ErrorCode.ParamsError, "Vite project output contains no files");
-  }
-  return { files };
-};
-
 export const parseGeneratedCode = (content: string, codegenType: CodegenType): ParsedProject => {
   switch (codegenType) {
     case CodegenType.VANILLA_HTML:
       return parseVanillaHtml(content);
     case CodegenType.MULTI_FILES:
       return parseMultiFiles(content);
-    case CodegenType.VITE_PROJECT:
-      return parseViteProject(content);
   }
 };

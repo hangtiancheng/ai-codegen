@@ -2,8 +2,6 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import { CODE_QUALITY_CHECK_SYSTEM_PROMPT, getSystemPrompt } from "../ai/index.js";
 import type { AiModelRegistry } from "../ai/models/index.js";
-import { CodegenType } from "../generated/prisma/enums.js";
-import { describeViteOutputCompletenessIssue } from "./vite-output-completeness.js";
 import type { CodeGenerator, CodegenStreamMetadata, QualityChecker } from "./workflow-service.js";
 
 const streamChunkSchema = z.object({
@@ -82,13 +80,9 @@ export const createLangChainCodeGenerator = (registry: AiModelRegistry): CodeGen
 });
 
 export const createLangChainQualityChecker = (registry: AiModelRegistry): QualityChecker => ({
-  check: async ({ code, codegenType }) => {
+  check: async ({ code }) => {
     if (code.trim().length === 0) {
       return { message: "No code generated", passed: false };
-    }
-    if (codegenType === CodegenType.VITE_PROJECT) {
-      const issue = describeViteOutputCompletenessIssue(code);
-      if (issue !== undefined) return { message: issue, passed: false };
     }
     const model = registry.createModel("quality");
     const responseFormat =

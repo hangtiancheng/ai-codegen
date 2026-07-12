@@ -4,8 +4,6 @@ import { imageCollectionPlanSchema, imageResourceListSchema } from "./image-asse
 
 export const workflowStateSchema = z.object({
   appId: z.bigint(),
-  buildLogs: z.string().default(""),
-  buildSuccess: z.boolean().default(false),
   codegenType: z.enum(CodegenType),
   enhancedPrompt: z.string(),
   error: z.string().default(""),

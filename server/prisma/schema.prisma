@@ -16,7 +16,6 @@ enum UserRole {
 enum CodegenType {
   VANILLA_HTML
   MULTI_FILES
-  VITE_PROJECT
 }
 
 enum ChatMessageType {

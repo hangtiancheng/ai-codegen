@@ -186,4 +186,4 @@ rules.ninja
 *.swp
 *.swo
 
-*-old/
+.omo/

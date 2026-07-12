@@ -11,13 +11,6 @@ export {
   saveGeneratedProject,
 } from "./code-saver.js";
 export {
-  type BuildProjectResult,
-  buildViteProject,
-  type CommandResult,
-  type CommandRunner,
-  runCommand,
-} from "./project-builder.js";
-export {
   createProjectZipStream,
   type DownloadEntry,
   listProjectDownloadEntries,
