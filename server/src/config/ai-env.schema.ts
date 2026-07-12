@@ -22,7 +22,6 @@ export const aiEnvSchema = z.object({
   AI_STREAMING_MODEL: z.string().min(1).default("qwen3.5"),
   AI_STREAMING_PROVIDER: providerKindSchema.default("ollama"),
   AI_STREAMING_TEMPERATURE: tempEnv.default(0.2),
-  CODEGEN_DEPLOY_HOST: z.string().min(1).default("http://localhost:3000/api"),
   OLLAMA_BASE_URL: z.string().min(1).default("http://localhost:11434"),
   STORAGE_DRIVER: z.enum(["local", "minio"]).default("local"),
   STORAGE_LOCAL_PUBLIC_BASE_URL: z.string().min(1).default("http://localhost:3000/storage"),

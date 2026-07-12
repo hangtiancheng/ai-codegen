@@ -61,7 +61,7 @@ Only local Ollama model providers are supported. Cloud model providers such as D
 The application module stores generated app metadata and ownership information. It supports:
 
 - Creating apps from user prompts.
-- Updating app name, cover, prompt, priority, and deployment metadata.
+- Updating app name, cover, prompt, and priority.
 - Deleting apps with owner checks.
 - Listing public or featured apps.
 - Listing the current user's own apps.
@@ -512,7 +512,7 @@ The static route serves generated preview files from `tmp/code_output`.
 
 ## Storage
 
-Storage is used for generated assets such as screenshots.
+Storage is used for generated application assets.
 
 Supported storage drivers:
 
@@ -643,7 +643,6 @@ Tests are colocated with the modules they cover. Examples:
 src/routes/app-routes.test.ts
 src/workflow/workflow-ai.test.ts
 src/project/code-parser.test.ts
-src/deployment/deployment-service.test.ts
 src/common/id.schema.test.ts
 ```
 

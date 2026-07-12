@@ -35,10 +35,6 @@ const baseEnvSchema = z.object({
     .int()
     .min(1024)
     .default(1024 * 1024),
-  SCREENSHOT_BROWSER_EXECUTABLE_PATH: z.string().min(1).optional(),
-  SCREENSHOT_TIMEOUT_MS: z.coerce.number().int().min(1_000).default(30_000),
-  SCREENSHOT_VIEWPORT_HEIGHT: z.coerce.number().int().min(100).default(720),
-  SCREENSHOT_VIEWPORT_WIDTH: z.coerce.number().int().min(100).default(1280),
   SESSION_SECRET: z.string().min(16).default("server-v2-default-secret-change-me"),
   SESSION_TTL_SECONDS: z.coerce
     .number()
@@ -96,13 +92,6 @@ export const envSchema = baseEnvSchema.extend(aiEnvSchema.shape).superRefine((va
       code: "custom",
       message: "STORAGE_MINIO_SECRET_KEY must be configured in production",
       path: ["STORAGE_MINIO_SECRET_KEY"],
-    });
-  }
-  if (value.SCREENSHOT_BROWSER_EXECUTABLE_PATH === undefined) {
-    ctx.addIssue({
-      code: "custom",
-      message: "SCREENSHOT_BROWSER_EXECUTABLE_PATH must be configured in production",
-      path: ["SCREENSHOT_BROWSER_EXECUTABLE_PATH"],
     });
   }
 });

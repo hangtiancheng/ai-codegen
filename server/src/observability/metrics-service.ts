@@ -15,7 +15,6 @@ export type MetricsService = Readonly<{
     tokenType: "input" | "output";
     tokens: number;
   }) => void;
-  recordScreenshotFailure: (input: { source: "direct" | "queue" }) => void;
   render: () => string;
 }>;
 
@@ -59,7 +58,6 @@ export const createMetricsService = (): MetricsService => {
   const errors = new Map<string, { labels: MetricLabels; value: number }>();
   const tokens = new Map<string, { labels: MetricLabels; value: number }>();
   const responseTimes = new Map<string, { labels: MetricLabels; value: number }>();
-  const screenshotFailures = new Map<string, { labels: MetricLabels; value: number }>();
 
   return {
     contentType: "text/plain; version=0.0.4; charset=utf-8",
@@ -81,9 +79,6 @@ export const createMetricsService = (): MetricsService => {
     recordAiTokenUsage: (input) => {
       increment(tokens, { model_role: input.modelRole, token_type: input.tokenType }, input.tokens);
     },
-    recordScreenshotFailure: (input) => {
-      increment(screenshotFailures, { source: input.source });
-    },
     render: () =>
       [
         renderCounter("ai_model_requests_total", "Total AI model requests", requests),
@@ -93,11 +88,6 @@ export const createMetricsService = (): MetricsService => {
           "ai_model_response_duration_seconds_sum",
           "Total AI response duration seconds",
           responseTimes,
-        ),
-        renderCounter(
-          "screenshot_failures_total",
-          "Total screenshot capture or queue failures",
-          screenshotFailures,
         ),
       ].join("\n"),
   };

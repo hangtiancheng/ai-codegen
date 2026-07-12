@@ -69,12 +69,8 @@ Base path: the server mounts routes under `/${API_PREFIX}` and defaults `API_PRE
   - server: [app-routes.ts](./server/src/routes/app-routes.ts)
   - client: [app-api.ts](./client/src/shared/api/app-api.ts)
   - status: aligned.
-- `POST /api/app/deploy`
-  - server: [app-deployment-routes.ts](./server/src/routes/app-deployment-routes.ts)
-  - client: [app-api.ts](./client/src/shared/api/app-api.ts)
-  - status: aligned.
 - `GET /api/app/download/:appId`
-  - server: [app-deployment-routes.ts](./server/src/routes/app-deployment-routes.ts)
+  - server: [app-routes.ts](./server/src/routes/app-routes.ts)
   - client: [app-download.ts](./client/src/shared/api/app-download.ts)
   - status: aligned.
 - `GET /api/app/get/vo`
@@ -137,10 +133,6 @@ Base path: the server mounts routes under `/${API_PREFIX}` and defaults `API_PRE
   - server: [workflow-demo-routes.ts](./server/src/routes/workflow-demo-routes.ts)
   - client: none
   - status: server-only.
-- `GET /api/dist/:deployKey/*`
-  - server: [static-routes.ts](./server/src/routes/static-routes.ts)
-  - client: [urls.ts](./client/src/shared/config/urls.ts)
-  - status: aligned through `VITE_DEPLOY_DOMAIN`.
 - `GET /api/static/*`
   - server: [static-routes.ts](./server/src/routes/static-routes.ts)
   - client: [urls.ts](./client/src/shared/config/urls.ts)
