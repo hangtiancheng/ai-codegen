@@ -46,7 +46,7 @@ describe("encryptSecret / decryptSecret", () => {
     const packed = encryptSecret("integrity-protected");
     const raw = Buffer.from(packed, "base64");
     // Flip a bit inside the auth-tag region (bytes 12..27) to trigger GCM failure.
-    raw[13] = raw[13] ^ 0xff;
+    raw[13] = (raw[13] ?? 0) ^ 0xff;
     const tampered = raw.toString("base64");
     expect(() => decryptSecret(tampered)).toThrow();
   });
@@ -87,7 +87,8 @@ describe("encryptStringMap / decryptStringMap", () => {
   it("throws when the underlying ciphertext is tampered with", () => {
     const packed = encryptStringMap({ a: "1" }) as string;
     const raw = Buffer.from(packed, "base64");
-    raw[raw.length - 1] = raw[raw.length - 1] ^ 0xff;
+    const last = raw.length - 1;
+    raw[last] = (raw[last] ?? 0) ^ 0xff;
     expect(() => decryptStringMap(raw.toString("base64"))).toThrow();
   });
 

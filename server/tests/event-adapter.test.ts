@@ -6,7 +6,9 @@ import { createEventAdapter } from "../src/agent-runtime/event-adapter.js";
 const first = (adapter: ReturnType<typeof createEventAdapter>, event: AgentEvent) => {
   const out = adapter.mapEvent(event);
   expect(out).toHaveLength(1);
-  return out[0];
+  const item = out[0];
+  if (item === undefined) throw new Error("expected exactly one output");
+  return item;
 };
 
 describe("createEventAdapter - initial state", () => {

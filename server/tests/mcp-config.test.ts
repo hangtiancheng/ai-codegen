@@ -182,8 +182,10 @@ describe("toMcpCreateData", () => {
     // Secrets are stored encrypted, not in the clear, and decrypt back.
     expect(typeof data.encryptedHeaders).toBe("string");
     expect(data.encryptedHeaders).not.toContain("Bearer xyz");
-    expect(decryptStringMap(data.encryptedHeaders)).toEqual({ Authorization: "Bearer xyz" });
-    expect(decryptStringMap(data.encryptedEnv)).toEqual({ TOKEN: "secret" });
+    expect(decryptStringMap(data.encryptedHeaders ?? null)).toEqual({
+      Authorization: "Bearer xyz",
+    });
+    expect(decryptStringMap(data.encryptedEnv ?? null)).toEqual({ TOKEN: "secret" });
   });
 
   it("defaults enabled to true and nulls absent secrets", () => {
