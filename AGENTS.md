@@ -1,6 +1,6 @@
 # API Contract Review
 
-Base path: the server mounts routes under `/${API_PREFIX}` and defaults `API_PREFIX` to `api`; the client defaults `VITE_API_BASE_URL` to `http://localhost:3000/api`.
+Base path: the server mounts routes under `/${BASE_URL}` and defaults `BASE_URL` to `api`; the client defaults `VITE_API_BASE_URL` to `http://localhost:3000/api`.
 
 ## Findings
 

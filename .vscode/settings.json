@@ -7,7 +7,7 @@
     "gsap",
     "langchain",
     "modelcontextprotocol",
-    "ollama",
+    "openai",
     "swifty",
     "trae",
     "vite"

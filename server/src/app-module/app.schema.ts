@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { idSchema } from "../common/id.schema.js";
-import { aiPromptSchema } from "../common/index.js";
+import { promptSchema } from "../common/index.js";
 import { pageRequestSchema } from "../common/pagination.schema.js";
 import { CodegenType } from "../generated/prisma/enums.js";
 
@@ -31,7 +31,7 @@ export const appVoSchema = z.object({
 });
 
 export const appAddSchema = z.object({
-  initPrompt: aiPromptSchema,
+  initPrompt: promptSchema,
 });
 
 export const appUpdateSchema = z.object({
@@ -49,7 +49,7 @@ export const appIdBodySchema = z.object({ id: idSchema });
 
 export const appChatCodegenQuerySchema = z.object({
   appId: idSchema,
-  message: aiPromptSchema,
+  message: promptSchema,
 });
 
 export const appAdminUpdateSchema = z.object({
@@ -64,7 +64,7 @@ export const appPageQuerySchema = pageRequestSchema.extend({
   appName: z.string().min(1).max(256).optional(),
   codegenType: codegenTypeSchema.optional(),
   id: idSchema.optional(),
-  initPrompt: aiPromptSchema.optional(),
+  initPrompt: promptSchema.optional(),
   priority: z.number().int().min(0).max(99).optional(),
   userId: idSchema.optional(),
 });

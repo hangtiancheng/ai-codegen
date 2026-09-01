@@ -9,7 +9,11 @@ import {
   handleError,
   handleNotFound,
 } from "./middleware/index.js";
-import type { HealthService, MetricsService, RequestLogger } from "./observability/index.js";
+import type {
+  HealthService,
+  MetricsService,
+  RequestLogger,
+} from "./observability/index.js";
 import { createRequestContextMiddleware } from "./observability/index.js";
 import type { RateLimiter } from "./rate-limit/index.js";
 import {
@@ -21,7 +25,11 @@ import {
   healthRoutes,
   workflowDemoRoutes,
 } from "./routes/index.js";
-import { type AppHonoEnv, type SessionStore, sessionMiddleware } from "./session/index.js";
+import {
+  type AppHonoEnv,
+  type SessionStore,
+  sessionMiddleware,
+} from "./session/index.js";
 import type { UserService } from "./user/index.js";
 import type { CodegenWorkflow } from "./workflow/index.js";
 
@@ -89,10 +97,11 @@ export const createApp = (deps: AppDependencies) => {
   api.route(
     "/",
     createStaticRoutes({
-      outputRootDir: deps.staticOutputRootDir ?? `${process.cwd()}/tmp/code_output`,
+      outputRootDir:
+        deps.staticOutputRootDir ?? `${process.cwd()}/tmp/code_output`,
     }),
   );
-  app.route(`/${env.API_PREFIX}`, api);
+  app.route(`/${env.BASE_URL}`, api);
 
   return app;
 };

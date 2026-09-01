@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-export const ollamaProviderSchema = z.object({
+export const openaiProviderSchema = z.object({
   baseUrl: z.string().min(1).default("http://localhost:11434"),
-  kind: z.literal("ollama"),
+  kind: z.literal("openai"),
 });
 
-export const providerSchema = ollamaProviderSchema;
+export const providerSchema = openaiProviderSchema;
 
-export type OllamaProvider = z.infer<typeof ollamaProviderSchema>;
+export type OpenAIProvider = z.infer<typeof openaiProviderSchema>;
 export type Provider = z.infer<typeof providerSchema>;

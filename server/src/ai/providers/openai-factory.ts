@@ -1,16 +1,14 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { ChatOllama } from "@langchain/ollama";
+import { ChatOpenAI } from "@langchain/openai";
 import type { ModelConfig } from "../models/model-config.schema.js";
-import type { OllamaProvider } from "./provider.schema.js";
+import type { OpenAIProvider } from "./provider.schema.js";
 
-export const createOllamaChatModel = (
-  provider: OllamaProvider,
+export const createOpenAIChatModel = (
+  provider: OpenAIProvider,
   config: ModelConfig,
 ): BaseChatModel =>
-  new ChatOllama({
-    baseUrl: provider.baseUrl,
+  new ChatOpenAI({
     model: config.modelName,
-    numPredict: config.maxTokens,
     streaming: config.streaming,
     temperature: config.temperature,
   });

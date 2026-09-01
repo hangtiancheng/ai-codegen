@@ -1,7 +1,7 @@
 {
   "name": "swifty-codegen",
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.4"
   },
   "scripts": {
     "format:client": "pnpm --filter @swifty-codegen/client format",

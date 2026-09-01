@@ -1,16 +1,2 @@
-packages:
-  - client
-  - server
-  - cli
-
-allowBuilds:
-  '@prisma/engines': true
-  better-sqlite3: true
-  esbuild: true
-  msgpackr-extract: true
-  msw: true
-  prisma: true
-
-overrides:
-  ioredis: ^5.11.1
-
+minimumReleaseAgeExclude:
+  - '@swifty.js/sentry@0.0.7'

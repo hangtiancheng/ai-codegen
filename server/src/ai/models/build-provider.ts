@@ -1,13 +1,13 @@
-import type { AiEnv } from "../../config/ai-env.schema.js";
+import type { AiEnv } from "../../config/ai.schema.js";
 import type { ModelConfig } from "../models/model-config.schema.js";
 import type { Provider } from "../providers/provider.schema.js";
 
-type ProviderKind = AiEnv["AI_ROUTE_PROVIDER"];
+type ProviderKind = AiEnv["ROUTE_PROVIDER"];
 
 export const buildProvider = (kind: ProviderKind, env: AiEnv): Provider => {
   switch (kind) {
-    case "ollama":
-      return { baseUrl: env.OLLAMA_BASE_URL, kind: "ollama" };
+    case "openai":
+      return { baseUrl: env.OPENAI_BASE_URL, kind: "openai" };
   }
 };
 

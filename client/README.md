@@ -206,7 +206,7 @@ Recommended local tools:
 - A running AI Codegen Server.
 - A browser with modern ES module support.
 
-The frontend does not directly talk to Ollama, PostgreSQL, Redis, or MinIO. Those dependencies belong to the backend. The frontend only needs the backend API URL.
+The frontend does not directly talk to OpenAI, PostgreSQL, Redis, or MinIO. Those dependencies belong to the backend. The frontend only needs the backend API URL.
 
 ## Quick Start
 

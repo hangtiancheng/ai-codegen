@@ -4,7 +4,7 @@ import { createSuccessResponse, ErrorCode } from "../common/index.js";
 import type { AppHonoEnv } from "../session/index.js";
 
 export const healthPayloadSchema = z.object({
-  service: z.literal("server-v2"),
+  service: z.literal("server"),
   status: z.literal("ok"),
   timestamp: z.iso.datetime(),
 });
@@ -17,7 +17,7 @@ export const healthSuccessResponseSchema = z.object({
 
 export const healthRoutes = new Hono<AppHonoEnv>().get("/health", (c) => {
   const payload = healthPayloadSchema.parse({
-    service: "server-v2",
+    service: "server",
     status: "ok",
     timestamp: new Date().toISOString(),
   });

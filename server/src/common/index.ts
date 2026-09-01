@@ -21,4 +21,4 @@ export {
   sortOrderSchema,
   toOffset,
 } from "./pagination.schema.js";
-export { aiPromptSchema } from "./prompt.schema.js";
+export { promptSchema } from "./prompt.schema.js";

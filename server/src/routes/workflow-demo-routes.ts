@@ -1,14 +1,14 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { aiPromptSchema, createSuccessResponse } from "../common/index.js";
+import { promptSchema, createSuccessResponse } from "../common/index.js";
 import { CodegenType } from "../generated/prisma/enums.js";
 import type { AppHonoEnv } from "../session/index.js";
 import { createWorkflowSseResponse } from "../workflow/index.js";
 import type { WorkflowSseEvent } from "../workflow/workflow-events.schema.js";
 
 const workflowPromptSchema = z.object({
-  prompt: aiPromptSchema,
+  prompt: promptSchema,
 });
 
 type WorkflowPrompt = z.infer<typeof workflowPromptSchema>;
@@ -19,7 +19,9 @@ const demoResult = (input: WorkflowPrompt) => ({
   status: "demo" as const,
 });
 
-async function* demoWorkflowEvents(input: WorkflowPrompt): AsyncGenerator<WorkflowSseEvent> {
+async function* demoWorkflowEvents(
+  input: WorkflowPrompt,
+): AsyncGenerator<WorkflowSseEvent> {
   yield {
     data: { appId: "demo", message: "Workflow demo started" },
     event: "workflow-start",

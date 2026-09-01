@@ -1,5 +1,8 @@
 import { Redis } from "ioredis";
-import { buildAiModelRegistryConfigFromEnv, createAiModelRegistry } from "./ai/index.js";
+import {
+  buildAiModelRegistryConfigFromEnv,
+  createAiModelRegistry,
+} from "./ai/index.js";
 import type { AppDependencies } from "./app.js";
 import {
   createDatabaseHealthCheck,
@@ -14,17 +17,26 @@ import {
 } from "./app-module/index.js";
 import { createDefaultShutdown } from "./app-shutdown.js";
 import { createConfiguredStorage } from "./app-storage.js";
-import { createChatHistoryRepository, createChatHistoryService } from "./chat-history/index.js";
+import {
+  createChatHistoryRepository,
+  createChatHistoryService,
+} from "./chat-history/index.js";
 import { env } from "./config/index.js";
 import { createPrismaClient } from "./database/index.js";
 import { createStorageHealthCheck } from "./deployment/index.js";
-import { createHealthService, createMetricsService } from "./observability/index.js";
+import {
+  createHealthService,
+  createMetricsService,
+} from "./observability/index.js";
 import {
   createInMemoryRateLimitStore,
   createRateLimiter,
   createRedisRateLimitStore,
 } from "./rate-limit/index.js";
-import { createInMemorySessionStore, createRedisSessionStore } from "./session/index.js";
+import {
+  createInMemorySessionStore,
+  createRedisSessionStore,
+} from "./session/index.js";
 import { createUserRepository, createUserService } from "./user/index.js";
 import {
   createCodegenWorkflow,
@@ -45,8 +57,13 @@ const createDefaultHealthChecks = (
   storageHealthProbe: ReturnType<typeof createConfiguredStorage>["healthProbe"],
 ) => [
   createDatabaseHealthCheck(db),
-  ...(env.HEALTH_MODEL_PROBE_ENABLED
-    ? [createModelProviderHealthCheck(aiRegistry, env.HEALTH_MODEL_TIMEOUT_MS)]
+  ...(env.MODEL_PROVIDER_HEALTH_CHECK_ENABLED
+    ? [
+        createModelProviderHealthCheck(
+          aiRegistry,
+          env.MODEL_PROVIDER_HEALTH_CHECK_TIMEOUT_MS,
+        ),
+      ]
     : []),
   createRedisHealthCheck(redisClient),
   createStorageHealthCheck(storageHealthProbe),
@@ -57,8 +74,12 @@ export const createDefaultDependencies = (): AppDependencies => {
   const redisClient = createRedisClient();
   const metricsService = createMetricsService();
   const appRepository: AppRepository = createAppRepository(db);
-  const chatHistoryService = createChatHistoryService(createChatHistoryRepository(db));
-  const aiRegistry = createAiModelRegistry(buildAiModelRegistryConfigFromEnv(env));
+  const chatHistoryService = createChatHistoryService(
+    createChatHistoryRepository(db),
+  );
+  const aiRegistry = createAiModelRegistry(
+    buildAiModelRegistryConfigFromEnv(env),
+  );
   const { healthProbe: storageHealthProbe } = createConfiguredStorage();
   const rateLimitStore =
     redisClient === undefined
@@ -67,9 +88,9 @@ export const createDefaultDependencies = (): AppDependencies => {
 
   return {
     aiGenerationRateLimiter: createRateLimiter(rateLimitStore, {
-      maxRequests: env.RATE_LIMIT_AI_GENERATION_MAX,
+      maxRequests: env.LLM_RATE_LIMIT,
       namespace: "ai-generation",
-      windowSeconds: env.RATE_LIMIT_AI_GENERATION_WINDOW_SECONDS,
+      windowSeconds: env.LLM_RATE_LIMIT_WINDOW_SECONDS,
     }),
     appService: createAppService(appRepository, createDefaultCodegenRouter()),
     chatHistoryService,
@@ -80,7 +101,12 @@ export const createDefaultDependencies = (): AppDependencies => {
     }),
     db,
     healthService: createHealthService(
-      createDefaultHealthChecks(db, aiRegistry, redisClient, storageHealthProbe),
+      createDefaultHealthChecks(
+        db,
+        aiRegistry,
+        redisClient,
+        storageHealthProbe,
+      ),
     ),
     metricsService,
     sessionStore:

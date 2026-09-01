@@ -2,7 +2,7 @@
 
 The AI Codegen Server is the backend service for the AI code generation platform. It is a TypeScript Hono application that manages users, applications, chat history, AI-assisted code generation, generated project persistence, static serving, health checks, and operational logging.
 
-The server is designed around strict runtime validation with Zod, strict TypeScript typing, local Ollama model execution, Prisma-backed persistence, and optional Redis-backed infrastructure.
+The server is designed around strict runtime validation with Zod, strict TypeScript typing, local OpenAI model execution, Prisma-backed persistence, and optional Redis-backed infrastructure.
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@ The server is designed around strict runtime validation with Zod, strict TypeScr
 - [Environment Configuration](#environment-configuration)
 - [Database](#database)
 - [Redis](#redis)
-- [Ollama and AI Models](#ollama-and-ai-models)
+- [OpenAI and AI Models](#openai-and-ai-models)
 - [HTTP API Structure](#http-api-structure)
 - [Authentication and Sessions](#authentication-and-sessions)
 - [Code Generation Workflow](#code-generation-workflow)
@@ -35,7 +35,7 @@ The server is designed around strict runtime validation with Zod, strict TypeScr
 
 This package provides the server-side runtime for the AI code generation product.
 
-It exposes a Hono HTTP API mounted under `/${API_PREFIX}`. With the default configuration, the API is available at:
+It exposes a Hono HTTP API mounted under `/${BASE_URL}`. With the default configuration, the API is available at:
 
 ```text
 http://localhost:3000/api
@@ -52,7 +52,7 @@ The server coordinates the following responsibilities:
 - Generated code parsing, validation, saving, and downloading.
 - Health checks for database, Redis, model provider, and storage.
 
-Only local Ollama model providers are supported. Cloud model providers such as DeepSeek and OpenAI are intentionally not part of the current server runtime.
+Only local OpenAI model providers are supported. Cloud model providers such as DeepSeek and OpenAI are intentionally not part of the current server runtime.
 
 ## Core Capabilities
 
@@ -115,7 +115,7 @@ HTTP request
   -> Zod validation
   -> service
   -> repository or workflow
-  -> Prisma, Redis, Ollama, storage, or filesystem
+  -> Prisma, Redis, OpenAI, storage, or filesystem
   -> normalized response envelope or SSE stream
 ```
 
@@ -152,7 +152,7 @@ server/
   prisma/
     schema.prisma              Prisma schema and generated client configuration
   src/
-    ai/                         Model configuration, Ollama provider, routing, guardrails, tools
+    ai/                         Model configuration, OpenAI provider, routing, guardrails, tools
     app-module/                 App domain service, repository, schemas
     chat-history/               Chat history domain service, repository, schemas
     common/                     Response envelopes, errors, pagination, ID and prompt schemas
@@ -187,7 +187,7 @@ Recommended runtime components:
 - Node.js compatible with the current dependency set.
 - pnpm `10.33.0`.
 - PostgreSQL for Prisma persistence.
-- Ollama for local LLM inference.
+- OpenAI for local LLM inference.
 - Redis for production sessions and rate limiting.
 - MinIO if production object storage is required.
 
@@ -213,7 +213,7 @@ Edit `server/.env` and provide at least:
 
 ```env
 DATABASE_URL=postgresql://root:pass@localhost:5432/ai_codegen
-OLLAMA_BASE_URL=http://localhost:11434
+OPENAI_BASE_URL=http://localhost:11434
 PASSWORD_SALT=<private-random-salt>
 SESSION_SECRET=<private-random-session-secret>
 ```
@@ -228,11 +228,11 @@ pnpm prisma:generate
 pnpm db:migrate
 ```
 
-Pull or prepare the Ollama models referenced by the environment:
+Pull or prepare the OpenAI models referenced by the environment:
 
 ```bash
-ollama pull qwen2.5
-ollama pull qwen3.5
+openai pull qwen2.5
+openai pull qwen3.5
 ```
 
 Start the server:
@@ -259,11 +259,11 @@ Use `server/.env.example` as the canonical template.
 | -------------------------- | ------------- | ------------------------------------------------------------------------------------- |
 | `NODE_ENV`                 | `development` | Runtime mode. Allowed values are `development`, `test`, and `production`.             |
 | `PORT`                     | `3000`        | HTTP port used by the Hono server.                                                    |
-| `API_PREFIX`               | `api`         | Public API prefix. Routes mount under `/${API_PREFIX}`.                               |
+| `BASE_URL`                 | `api`         | Public API prefix. Routes mount under `/${BASE_URL}`.                                 |
 | `LOG_LEVEL`                | `info`        | Application log level.                                                                |
 | `CORS_ALLOWED_ORIGINS`     | `*`           | Comma-separated browser origins allowed by CORS. Production rejects wildcard origins. |
 | `REQUEST_BODY_LIMIT_BYTES` | `1048576`     | Maximum request body size accepted by middleware.                                     |
-| `AI_PROMPT_MAX_LENGTH`     | `4096`        | Maximum user prompt length accepted by AI generation endpoints.                       |
+| `PROMPT_MAX_LENGTH`        | `4096`        | Maximum user prompt length accepted by AI generation endpoints.                       |
 
 ### Persistence and Sessions
 
@@ -277,41 +277,41 @@ Use `server/.env.example` as the canonical template.
 
 ### Health Checks
 
-| Variable                     | Default | Description                                      |
-| ---------------------------- | ------- | ------------------------------------------------ |
-| `HEALTH_MODEL_PROBE_ENABLED` | `true`  | Enables model provider probing in health checks. |
-| `HEALTH_MODEL_TIMEOUT_MS`    | `5000`  | Timeout for model health probes.                 |
+| Variable                                 | Default | Description                                      |
+| ---------------------------------------- | ------- | ------------------------------------------------ |
+| `MODEL_PROVIDER_HEALTH_CHECK_ENABLED`    | `true`  | Enables model provider probing in health checks. |
+| `MODEL_PROVIDER_HEALTH_CHECK_TIMEOUT_MS` | `5000`  | Timeout for model health probes.                 |
 
 ### Rate Limiting
 
-| Variable                                  | Default | Description                             |
-| ----------------------------------------- | ------- | --------------------------------------- |
-| `RATE_LIMIT_AI_GENERATION_MAX`            | `10`    | Maximum generation requests per window. |
-| `RATE_LIMIT_AI_GENERATION_WINDOW_SECONDS` | `60`    | Rate-limit window size in seconds.      |
+| Variable                        | Default | Description                             |
+| ------------------------------- | ------- | --------------------------------------- |
+| `LLM_RATE_LIMIT`                | `10`    | Maximum generation requests per window. |
+| `LLM_RATE_LIMIT_WINDOW_SECONDS` | `60`    | Rate-limit window size in seconds.      |
 
 ### AI Model Configuration
 
-Only `ollama` is accepted as a provider value.
+Only `openai` is accepted as a provider value.
 
-| Variable                   | Default                                             | Description                                                                                        |
-| -------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `OLLAMA_BASE_URL`          | `http://localhost:11434`                            | Base URL of the local Ollama server.                                                               |
-| `AI_ROUTE_PROVIDER`        | `ollama`                                            | Provider used for route classification.                                                            |
-| `AI_ROUTE_MODEL`           | `qwen2.5`                                           | Model used to classify generation type.                                                            |
-| `AI_ROUTE_MAX_TOKENS`      | `100`                                               | Maximum route-classification output tokens.                                                        |
-| `AI_ROUTE_TEMPERATURE`     | `0`                                                 | Route-classification sampling temperature.                                                         |
-| `AI_STREAMING_PROVIDER`    | `ollama`                                            | Provider used for streaming code generation.                                                       |
-| `AI_STREAMING_MODEL`       | `qwen3.5`                                           | Model used for streaming code generation.                                                          |
-| `AI_STREAMING_MAX_TOKENS`  | `8192` in schema, commonly raised in `.env.example` | Maximum streaming output tokens. Large projects often require a higher value such as `65536`. |
-| `AI_STREAMING_TEMPERATURE` | `0.2`                                               | Streaming model sampling temperature.                                                              |
-| `AI_REASONING_PROVIDER`    | `ollama`                                            | Provider used for prompt enhancement and reasoning.                                                |
-| `AI_REASONING_MODEL`       | `qwen2.5`                                           | Model used for reasoning.                                                                          |
-| `AI_REASONING_MAX_TOKENS`  | `8192`                                              | Maximum reasoning output tokens.                                                                   |
-| `AI_REASONING_TEMPERATURE` | `0.1`                                               | Reasoning model sampling temperature.                                                              |
-| `AI_QUALITY_PROVIDER`      | `ollama`                                            | Provider used for quality checks.                                                                  |
-| `AI_QUALITY_MODEL`         | `qwen2.5`                                           | Model used for quality checks.                                                                     |
-| `AI_QUALITY_MAX_TOKENS`    | `4096`                                              | Maximum quality-check output tokens.                                                               |
-| `AI_QUALITY_TEMPERATURE`   | `0.2`                                               | Quality-check sampling temperature.                                                                |
+| Variable                | Default                                             | Description                                                                                   |
+| ----------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `OPENAI_BASE_URL`       | `http://localhost:11434`                            | Base URL of the local OpenAI server.                                                          |
+| `ROUTE_PROVIDER`        | `openai`                                            | Provider used for route classification.                                                       |
+| `ROUTE_MODEL`           | `qwen2.5`                                           | Model used to classify generation type.                                                       |
+| `ROUTE_MAX_TOKENS`      | `100`                                               | Maximum route-classification output tokens.                                                   |
+| `ROUTE_TEMPERATURE`     | `0`                                                 | Route-classification sampling temperature.                                                    |
+| `STREAMING_PROVIDER`    | `openai`                                            | Provider used for streaming code generation.                                                  |
+| `STREAMING_MODEL`       | `qwen3.5`                                           | Model used for streaming code generation.                                                     |
+| `STREAMING_MAX_TOKENS`  | `8192` in schema, commonly raised in `.env.example` | Maximum streaming output tokens. Large projects often require a higher value such as `65536`. |
+| `STREAMING_TEMPERATURE` | `0.2`                                               | Streaming model sampling temperature.                                                         |
+| `REASONING_PROVIDER`    | `openai`                                            | Provider used for prompt enhancement and reasoning.                                           |
+| `REASONING_MODEL`       | `qwen2.5`                                           | Model used for reasoning.                                                                     |
+| `REASONING_MAX_TOKENS`  | `8192`                                              | Maximum reasoning output tokens.                                                              |
+| `REASONING_TEMPERATURE` | `0.1`                                               | Reasoning model sampling temperature.                                                         |
+| `QUALITY_PROVIDER`      | `openai`                                            | Provider used for quality checks.                                                             |
+| `QUALITY_MODEL`         | `qwen2.5`                                           | Model used for quality checks.                                                                |
+| `QUALITY_MAX_TOKENS`    | `4096`                                              | Maximum quality-check output tokens.                                                          |
+| `QUALITY_TEMPERATURE`   | `0.2`                                               | Quality-check sampling temperature.                                                           |
 
 ### Storage
 
@@ -390,9 +390,9 @@ When `REDIS_URL` is not configured, the server falls back to:
 
 Do not use in-memory fallbacks for horizontally scaled production deployments.
 
-## Ollama and AI Models
+## OpenAI and AI Models
 
-The AI provider layer supports only Ollama. Provider schemas reject other provider values.
+The AI provider layer supports only OpenAI. Provider schemas reject other provider values.
 
 The model registry creates separate model configurations for:
 
@@ -404,19 +404,19 @@ The model registry creates separate model configurations for:
 Recommended local setup:
 
 ```bash
-ollama serve
-ollama pull qwen2.5
-ollama pull qwen3.5
+openai serve
+openai pull qwen2.5
+openai pull qwen3.5
 ```
 
-The streaming model must have enough output capacity for complete generated projects. If generated Markdown code fences are often unterminated and files are missing, inspect the final stream chunk metadata. A `done_reason` of `length` usually means `AI_STREAMING_MAX_TOKENS` is too low for the requested project size.
+The streaming model must have enough output capacity for complete generated projects. If generated Markdown code fences are often unterminated and files are missing, inspect the final stream chunk metadata. A `done_reason` of `length` usually means `STREAMING_MAX_TOKENS` is too low for the requested project size.
 
 ## HTTP API Structure
 
 Routes are mounted by `src/app.ts` under:
 
 ```text
-/${API_PREFIX}
+/${BASE_URL}
 ```
 
 Default route prefix:
@@ -548,7 +548,7 @@ Important diagnostics captured during streaming:
 - `response_metadata.eval_count`.
 - `usage_metadata.output_tokens`.
 
-These fields are especially useful for detecting token-cap truncation. If `done_reason` is `length` and `output_tokens` equals the configured maximum, increase `AI_STREAMING_MAX_TOKENS` or reduce the requested project scope.
+These fields are especially useful for detecting token-cap truncation. If `done_reason` is `length` and `output_tokens` equals the configured maximum, increase `STREAMING_MAX_TOKENS` or reduce the requested project scope.
 
 ## Health Checks
 
@@ -564,10 +564,10 @@ Default checks include:
 Model probing can be disabled with:
 
 ```env
-HEALTH_MODEL_PROBE_ENABLED=false
+MODEL_PROVIDER_HEALTH_CHECK_ENABLED=false
 ```
 
-This is useful when local development should not call Ollama during health checks.
+This is useful when local development should not call OpenAI during health checks.
 
 ## Development Commands
 
@@ -692,8 +692,8 @@ Production checklist:
 - Override `SESSION_SECRET`.
 - Use `STORAGE_DRIVER=minio`.
 - Configure MinIO credentials and bucket.
-- Ensure Ollama is reachable from the server.
-- Pull all configured Ollama models.
+- Ensure OpenAI is reachable from the server.
+- Pull all configured OpenAI models.
 - Run `pnpm db:deploy`.
 
 ## Migration and Cutover Utilities
@@ -755,8 +755,8 @@ Check:
 - `.env` exists and is readable.
 - `DATABASE_URL` is valid.
 - Required production variables are set.
-- `API_PREFIX` matches the expected pattern.
-- Provider variables are set to `ollama`.
+- `BASE_URL` matches the expected pattern.
+- Provider variables are set to `openai`.
 - MinIO variables are present when `STORAGE_DRIVER=minio`.
 
 Environment parsing errors are usually explicit because the server validates configuration with Zod.
@@ -788,9 +788,9 @@ Check:
 
 - User is authenticated.
 - Rate limits are not exceeded.
-- Ollama is running.
+- OpenAI is running.
 - The configured model exists locally.
-- `OLLAMA_BASE_URL` is reachable from the server process.
+- `OPENAI_BASE_URL` is reachable from the server process.
 
 ### Streaming Stops with Incomplete Code Fences
 
@@ -804,7 +804,7 @@ If the final chunk has:
 }
 ```
 
-then the model hit the output token cap. Increase `AI_STREAMING_MAX_TOKENS`, request a smaller app, or split generation into smaller phases.
+then the model hit the output token cap. Increase `STREAMING_MAX_TOKENS`, request a smaller app, or split generation into smaller phases.
 
 ### Generated Files Are Missing from `tmp/code_output`
 
@@ -819,18 +819,18 @@ If only generated code exists and no save artifacts exist, parsing likely failed
 
 ### Health Check Fails on Model Probe
 
-If Ollama is intentionally unavailable in local development, set:
+If OpenAI is intentionally unavailable in local development, set:
 
 ```env
-HEALTH_MODEL_PROBE_ENABLED=false
+MODEL_PROVIDER_HEALTH_CHECK_ENABLED=false
 ```
 
-If it should be available, verify `OLLAMA_BASE_URL` and local models.
+If it should be available, verify `OPENAI_BASE_URL` and local models.
 
 ## Maintenance Notes
 
 - Keep `server/.env.example` synchronized with `src/config/env.schema.ts` and `src/config/ai-env.schema.ts`.
-- Keep frontend runtime URLs aligned with `API_PREFIX`.
+- Keep frontend runtime URLs aligned with `BASE_URL`.
 - Rebuild `dist/` after provider or schema changes so compiled output does not contain stale code.
 - Treat `tmp/` and `logs/` as operational artifacts, not source.
 - Prefer adding focused regression tests when changing parsing, ID schemas, or static serving.
