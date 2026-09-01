@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { decryptStringMap } from "../src/agent-runtime/mcp-crypto.js";
 import {
   mcpServerCreateSchema,
   mcpServerUpdateSchema,
@@ -7,6 +6,7 @@ import {
   toMcpUpdateData,
   toMcpVo,
 } from "../src/agent-runtime/mcp-config.js";
+import { decryptStringMap } from "../src/agent-runtime/mcp-crypto.js";
 
 type McpRow = Parameters<typeof toMcpVo>[0];
 

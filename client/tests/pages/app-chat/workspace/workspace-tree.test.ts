@@ -30,7 +30,9 @@ function dirNode(
 /** Narrow a FileSystemTree entry to its file contents. */
 function fileContents(tree: FileSystemTree, name: string): string | Uint8Array {
   const entry = tree[name];
-  if (!entry || !("file" in entry)) throw new Error(`no file entry: ${name}`);
+  if (!entry || !("file" in entry) || !("contents" in entry.file)) {
+    throw new Error(`no file entry: ${name}`);
+  }
   return entry.file.contents;
 }
 
@@ -115,7 +117,9 @@ describe("agentTreeToFileSystem", () => {
 
     const decoded = fileContents(tree, "logo.bin");
     expect(decoded).toBeInstanceOf(Uint8Array);
-    expect(new TextDecoder().decode(decoded as Uint8Array)).toBe("hello");
+    if (!(decoded instanceof Uint8Array))
+      throw new Error("expected binary contents");
+    expect(new TextDecoder().decode(decoded)).toBe("hello");
   });
 
   it("nests directories and skips ignored directories", () => {
