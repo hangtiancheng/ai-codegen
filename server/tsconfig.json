@@ -20,6 +20,6 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["src", "./prisma.config.ts"],
-  "exclude": ["./coverage", "./dist", "./generated", "./node_modules"]
+  "include": ["src", "tests", "prisma.config.ts"],
+  "exclude": ["coverage", "dist", "generated", "node_modules"]
 }

@@ -5,7 +5,7 @@ export function GlobalFooter(): ReactNode {
     <footer className="mt-10 py-5 text-center">
       <p className="text-muted-foreground m-0 text-sm">
         <a
-          href="https://github.com/161043261"
+          href="https://github.com/hangtiancheng/swifty-codegen"
           target="_blank"
           rel="noopener noreferrer"
           className="text-muted-foreground hover:text-primary no-underline transition-colors"

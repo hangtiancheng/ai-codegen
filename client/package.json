@@ -1,5 +1,5 @@
 {
-  "name": "@swifty-codegen/client",
+  "name": "client",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,7 +9,8 @@
     "lint": "eslint . --max-warnings 0",
     "preview": "vite preview",
     "format": "prettier -w ./ --experimental-cli",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
@@ -27,7 +28,7 @@
     "clsx": "^2.1.1",
     "dompurify": "^3.4.14",
     "gsap": "^3.15.0",
-    "lucide-react": "^1.37.0",
+    "lucide-react": "^1.38.0",
     "marked": "^18.0.11",
     "monaco-editor": "^0.56.0",
     "react": "^19.2.8",

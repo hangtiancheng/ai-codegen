@@ -1,10 +1,11 @@
 {
-  "name": "@swifty-codegen/server",
+  "name": "server",
   "version": "0.0.0",
   "description": "Hono backend for AI code generation.",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "test": "vitest run",
     "build": "pnpm prisma:generate && rollup -c ./rollup.config.js",
     "start": "node dist/index.js",
     "format": "biome format --write .",
@@ -51,7 +52,8 @@
     "prisma": "^7.10.0",
     "rollup": "^4.63.1",
     "tsx": "^4.23.13",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
   },
   "type": "module",
   "private": true
