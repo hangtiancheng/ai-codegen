@@ -1,8 +1,34 @@
 import "@xterm/xterm/css/xterm.css";
 import { FitAddon } from "@xterm/addon-fit";
-import { Terminal } from "@xterm/xterm";
+import { type ITheme, Terminal } from "@xterm/xterm";
 import { useEffect, useRef, type ReactNode } from "react";
 import { useWorkspace } from "./workspace-context";
+
+// Light terminal palette (GitHub-light inspired) so the integrated shell matches
+// the rest of the light IDE. ANSI colors are chosen for contrast on white.
+const LIGHT_TERMINAL_THEME: ITheme = {
+  background: "#ffffff",
+  foreground: "#1f2328",
+  cursor: "#1f2328",
+  cursorAccent: "#ffffff",
+  selectionBackground: "#b3d4fc",
+  black: "#1f2328",
+  red: "#cf222e",
+  green: "#116329",
+  yellow: "#7d4e00",
+  blue: "#0969da",
+  magenta: "#8250df",
+  cyan: "#1b7c83",
+  white: "#6e7781",
+  brightBlack: "#57606a",
+  brightRed: "#a40e26",
+  brightGreen: "#1a7f37",
+  brightYellow: "#633c01",
+  brightBlue: "#218bff",
+  brightMagenta: "#a475f9",
+  brightCyan: "#3192aa",
+  brightWhite: "#8c959f",
+};
 
 /**
  * Integrated `jsh` terminal. It wires the workspace shell to a single xterm
@@ -28,7 +54,7 @@ export function WorkspaceTerminal(): ReactNode {
       cursorBlink: true,
       fontSize: 12,
       fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace",
-      theme: { background: "#0b0f19" },
+      theme: LIGHT_TERMINAL_THEME,
     });
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
@@ -69,10 +95,10 @@ export function WorkspaceTerminal(): ReactNode {
   }, [attachTerminal]);
 
   return (
-    <div className="relative h-full min-h-0 bg-[#0b0f19]">
+    <div className="relative h-full min-h-0 bg-white">
       <div ref={containerRef} className="h-full min-h-0 w-full p-1" />
       {workspace.agentRunning ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-xs text-white/80">
+        <div className="text-muted-foreground absolute inset-0 flex items-center justify-center bg-white/60 text-xs">
           Terminal paused while the agent is running…
         </div>
       ) : null}

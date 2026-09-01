@@ -14,7 +14,7 @@ import { useWorkspace } from "./workspace-context";
 import type { WorkspaceFileState } from "./workspace-types";
 import type * as Monaco from "monaco-editor";
 
-const EDITOR_THEME = "vs-dark";
+const EDITOR_THEME = "vs";
 
 type LatestRefs = {
   activePath: string | undefined;

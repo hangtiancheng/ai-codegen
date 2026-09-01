@@ -8,7 +8,6 @@ import { type AppVo } from "@/shared/schemas";
 import { AppDetailModal } from "@/shared/ui";
 import { buildPreviewFixPrompt } from "./build-error-context";
 import { handleChatDownload } from "./chat-action-handlers";
-import { ChatActions } from "./chat-actions";
 import { ChatHeader } from "./chat-header";
 import { ChatPane } from "./chat-pane";
 import { useAgentSocket } from "./use-agent-socket";
@@ -40,12 +39,9 @@ export function AppChatWorkspace({ app }: { readonly app: AppVo }): ReactNode {
       <ChatHeader
         app={app}
         canManage={canManage}
+        downloading={downloading}
         onDetails={() => setDetailsOpen(true)}
         onEdit={() => navigate(`/app/edit/${app.id}`)}
-      />
-      <ChatActions
-        canManage={canManage}
-        downloading={downloading}
         onDownload={() => handleChatDownload(app, setDownloading)}
       />
       <WorkspaceProvider appId={app.id} enabled agentRunning={agentRunning}>
