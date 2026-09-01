@@ -187,3 +187,4 @@ rules.ninja
 *.swo
 
 .omo/
+.playwright-cli/

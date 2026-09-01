@@ -88,13 +88,16 @@ const startDevServer = async (
   const exited = process.exit.then((code) => {
     throw new Error(`Vite exited before becoming ready (code ${code})`);
   });
-  const url = await Promise.race([serverReady, exited]);
-  unsubscribe?.();
-  activePreview = { appId, process, url };
-  void process.exit.then(() => {
-    if (activePreview?.process === process) activePreview = undefined;
-  });
-  return url;
+  try {
+    const url = await Promise.race([serverReady, exited]);
+    activePreview = { appId, process, url };
+    void process.exit.then(() => {
+      if (activePreview?.process === process) activePreview = undefined;
+    });
+    return url;
+  } finally {
+    unsubscribe?.();
+  }
 };
 
 export function useWebContainerPreview(

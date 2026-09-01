@@ -33,7 +33,7 @@
 
 (function () {
   /** @type {boolean} */
-  let isEditMode = true;
+  let isEditMode = false;
   /** @type {HTMLElement | null} */
   let currentHoverElement = null;
   /** @type {HTMLElement | null} */
@@ -317,7 +317,15 @@
     },
   );
 
-  injectStyles();
-  addEventListeners();
-  showEditTip();
+  /** @returns {void} */
+  function initialize() {
+    injectStyles();
+    addEventListeners();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initialize, { once: true });
+  } else {
+    initialize();
+  }
 })();

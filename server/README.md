@@ -428,14 +428,12 @@ Default route prefix:
 Route groups:
 
 ```text
-GET/POST /api/...                    Health, static files, and grouped routes
+GET/POST /api/...                    Health and grouped routes
 /api/user/...                        User registration, login, logout, current user, admin user APIs
-/api/app/...                         App CRUD, app listing, codegen streaming
+/api/app/...                         App CRUD, app listing, Agent codegen streaming, project file trees
 /api/app/admin/...                   Admin app management
 /api/management/...                  Operational management endpoints
 /api/chat-history/...                App and admin chat history APIs
-/api/workflow/...                    Workflow demo routes
-/api/static/...                      Generated static preview files
 ```
 
 Most JSON endpoints return a normalized success response envelope built by `createSuccessResponse`.
@@ -463,52 +461,45 @@ src/session/redis-session-store.ts
 src/session/auth-middleware.ts
 ```
 
-## Code Generation Workflow
+## Code Generation Agent
 
-The code generation workflow lives under:
-
-```text
-src/workflow/
-```
-
-The workflow is responsible for streaming output to the client while also producing durable server-side state.
-
-Typical phase order:
+The code generation integration lives under:
 
 ```text
-1. Receive authenticated codegen request
-2. Apply AI generation rate limit
-3. Resolve app and user context
-4. Classify code generation type
-5. Enhance prompt or perform reasoning
-6. Stream generated code chunks to the client
-7. Store chat messages
-8. Check generated output quality
-9. Parse generated project files
-10. Save generated files to tmp/code_output
-11. Emit done or business-error SSE event
+src/codegen-agent/
 ```
 
-Supported code generation types are defined by Prisma and mirrored in schemas:
+The authenticated `GET /api/app/chat/codegen` endpoint runs an `@swifty.js/swifty` Agent with the built-in `ReadFile`, `WriteFile`, `EditFile`, `Glob`, `Grep`, and `Bash` tools. The Agent writes a Vite React TypeScript project directly into `tmp/code_output/{appId}` and streams narration and tool activity to the client over SSE.
 
-- `VANILLA_HTML`
-- `MULTI_FILES`
-
-## Static Serving
-
-Generated project output is saved under:
+Typical flow:
 
 ```text
-tmp/code_output/
+1. Receive an authenticated codegen request and apply the rate limit
+2. Load the app's recent chat history for iterative editing
+3. Run the Agent in the app output directory
+4. Stream message and tool events to the browser
+5. Validate package.json and index.html
+6. Store the narration and generated file manifest in chat history
+7. Emit done or business-error
 ```
 
-Static preview files are served through:
+There is no routing model, code-generation type, separate quality model, or markdown code-block parser.
+
+## Browser Preview
+
+Generated source files remain under:
 
 ```text
-/api/static/...
+tmp/code_output/{appId}/
 ```
 
-The static route serves generated preview files from `tmp/code_output`.
+The authenticated endpoint below serializes the source tree for the frontend:
+
+```text
+GET /api/app/files/:appId
+```
+
+The frontend mounts that tree into a StackBlitz WebContainer, installs dependencies, and runs the Vite development server in the browser. The server does not build or serve preview assets.
 
 ## Storage
 

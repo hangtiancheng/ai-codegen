@@ -16,9 +16,12 @@ const IFRAME_LOAD_DELAY_MS = 300;
 let previewScriptPromise: Promise<void> | undefined;
 
 const ensurePreviewScript = (): Promise<void> => {
-  previewScriptPromise ??= getWebContainer().then((container) =>
-    container.setPreviewScript(editScriptSource),
-  );
+  previewScriptPromise ??= getWebContainer()
+    .then((container) => container.setPreviewScript(editScriptSource))
+    .catch((error: unknown) => {
+      previewScriptPromise = undefined;
+      throw error;
+    });
   return previewScriptPromise;
 };
 
@@ -98,7 +101,7 @@ export function useVisualEditor(previewUrl?: string): VisualEditorState {
   }, [postToIframe]);
 
   useEffect(() => {
-    void ensurePreviewScript();
+    void ensurePreviewScript().catch(() => undefined);
   }, []);
 
   useEffect(() => {
