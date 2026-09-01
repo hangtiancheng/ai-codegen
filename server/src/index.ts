@@ -14,7 +14,7 @@ const closeServer = (server: ServerType): Promise<void> =>
   });
 
 const dependencies = createDefaultDependencies();
-const app = createApp(dependencies);
+const { app, injectWebSocket } = createApp(dependencies);
 const server = serve(
   {
     fetch: app.fetch,
@@ -24,6 +24,7 @@ const server = serve(
     console.log(`Server listening on http://localhost:${String(info.port)}/${env.BASE_URL}`);
   },
 );
+injectWebSocket(server);
 
 let shuttingDown = false;
 

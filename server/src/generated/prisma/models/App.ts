@@ -265,7 +265,7 @@ export type AppWhereInput = {
   updateTime?: Prisma.DateTimeFilter<"App"> | Date | string
   isDelete?: Prisma.BoolFilter<"App"> | boolean
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  chatHistories?: Prisma.ChatHistoryListRelationFilter
+  agentWorkspaces?: Prisma.AgentWorkspaceListRelationFilter
 }
 
 export type AppOrderByWithRelationInput = {
@@ -280,7 +280,7 @@ export type AppOrderByWithRelationInput = {
   updateTime?: Prisma.SortOrder
   isDelete?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
-  chatHistories?: Prisma.ChatHistoryOrderByRelationAggregateInput
+  agentWorkspaces?: Prisma.AgentWorkspaceOrderByRelationAggregateInput
 }
 
 export type AppWhereUniqueInput = Prisma.AtLeast<{
@@ -298,7 +298,7 @@ export type AppWhereUniqueInput = Prisma.AtLeast<{
   updateTime?: Prisma.DateTimeFilter<"App"> | Date | string
   isDelete?: Prisma.BoolFilter<"App"> | boolean
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  chatHistories?: Prisma.ChatHistoryListRelationFilter
+  agentWorkspaces?: Prisma.AgentWorkspaceListRelationFilter
 }, "id">
 
 export type AppOrderByWithAggregationInput = {
@@ -346,7 +346,7 @@ export type AppCreateInput = {
   updateTime?: Date | string
   isDelete?: boolean
   user: Prisma.UserCreateNestedOneWithoutAppsInput
-  chatHistories?: Prisma.ChatHistoryCreateNestedManyWithoutAppInput
+  agentWorkspaces?: Prisma.AgentWorkspaceCreateNestedManyWithoutAppInput
 }
 
 export type AppUncheckedCreateInput = {
@@ -360,7 +360,7 @@ export type AppUncheckedCreateInput = {
   createTime?: Date | string
   updateTime?: Date | string
   isDelete?: boolean
-  chatHistories?: Prisma.ChatHistoryUncheckedCreateNestedManyWithoutAppInput
+  agentWorkspaces?: Prisma.AgentWorkspaceUncheckedCreateNestedManyWithoutAppInput
 }
 
 export type AppUpdateInput = {
@@ -374,7 +374,7 @@ export type AppUpdateInput = {
   updateTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isDelete?: Prisma.BoolFieldUpdateOperationsInput | boolean
   user?: Prisma.UserUpdateOneRequiredWithoutAppsNestedInput
-  chatHistories?: Prisma.ChatHistoryUpdateManyWithoutAppNestedInput
+  agentWorkspaces?: Prisma.AgentWorkspaceUpdateManyWithoutAppNestedInput
 }
 
 export type AppUncheckedUpdateInput = {
@@ -388,7 +388,7 @@ export type AppUncheckedUpdateInput = {
   createTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updateTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isDelete?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  chatHistories?: Prisma.ChatHistoryUncheckedUpdateManyWithoutAppNestedInput
+  agentWorkspaces?: Prisma.AgentWorkspaceUncheckedUpdateManyWithoutAppNestedInput
 }
 
 export type AppCreateManyInput = {
@@ -545,18 +545,18 @@ export type IntFieldUpdateOperationsInput = {
   divide?: number
 }
 
-export type AppCreateNestedOneWithoutChatHistoriesInput = {
-  create?: Prisma.XOR<Prisma.AppCreateWithoutChatHistoriesInput, Prisma.AppUncheckedCreateWithoutChatHistoriesInput>
-  connectOrCreate?: Prisma.AppCreateOrConnectWithoutChatHistoriesInput
+export type AppCreateNestedOneWithoutAgentWorkspacesInput = {
+  create?: Prisma.XOR<Prisma.AppCreateWithoutAgentWorkspacesInput, Prisma.AppUncheckedCreateWithoutAgentWorkspacesInput>
+  connectOrCreate?: Prisma.AppCreateOrConnectWithoutAgentWorkspacesInput
   connect?: Prisma.AppWhereUniqueInput
 }
 
-export type AppUpdateOneRequiredWithoutChatHistoriesNestedInput = {
-  create?: Prisma.XOR<Prisma.AppCreateWithoutChatHistoriesInput, Prisma.AppUncheckedCreateWithoutChatHistoriesInput>
-  connectOrCreate?: Prisma.AppCreateOrConnectWithoutChatHistoriesInput
-  upsert?: Prisma.AppUpsertWithoutChatHistoriesInput
+export type AppUpdateOneRequiredWithoutAgentWorkspacesNestedInput = {
+  create?: Prisma.XOR<Prisma.AppCreateWithoutAgentWorkspacesInput, Prisma.AppUncheckedCreateWithoutAgentWorkspacesInput>
+  connectOrCreate?: Prisma.AppCreateOrConnectWithoutAgentWorkspacesInput
+  upsert?: Prisma.AppUpsertWithoutAgentWorkspacesInput
   connect?: Prisma.AppWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.AppUpdateToOneWithWhereWithoutChatHistoriesInput, Prisma.AppUpdateWithoutChatHistoriesInput>, Prisma.AppUncheckedUpdateWithoutChatHistoriesInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AppUpdateToOneWithWhereWithoutAgentWorkspacesInput, Prisma.AppUpdateWithoutAgentWorkspacesInput>, Prisma.AppUncheckedUpdateWithoutAgentWorkspacesInput>
 }
 
 export type AppCreateWithoutUserInput = {
@@ -569,7 +569,7 @@ export type AppCreateWithoutUserInput = {
   createTime?: Date | string
   updateTime?: Date | string
   isDelete?: boolean
-  chatHistories?: Prisma.ChatHistoryCreateNestedManyWithoutAppInput
+  agentWorkspaces?: Prisma.AgentWorkspaceCreateNestedManyWithoutAppInput
 }
 
 export type AppUncheckedCreateWithoutUserInput = {
@@ -582,7 +582,7 @@ export type AppUncheckedCreateWithoutUserInput = {
   createTime?: Date | string
   updateTime?: Date | string
   isDelete?: boolean
-  chatHistories?: Prisma.ChatHistoryUncheckedCreateNestedManyWithoutAppInput
+  agentWorkspaces?: Prisma.AgentWorkspaceUncheckedCreateNestedManyWithoutAppInput
 }
 
 export type AppCreateOrConnectWithoutUserInput = {
@@ -627,7 +627,7 @@ export type AppScalarWhereInput = {
   isDelete?: Prisma.BoolFilter<"App"> | boolean
 }
 
-export type AppCreateWithoutChatHistoriesInput = {
+export type AppCreateWithoutAgentWorkspacesInput = {
   id?: bigint | number
   appName?: string | null
   appCover?: string | null
@@ -640,7 +640,7 @@ export type AppCreateWithoutChatHistoriesInput = {
   user: Prisma.UserCreateNestedOneWithoutAppsInput
 }
 
-export type AppUncheckedCreateWithoutChatHistoriesInput = {
+export type AppUncheckedCreateWithoutAgentWorkspacesInput = {
   id?: bigint | number
   appName?: string | null
   appCover?: string | null
@@ -653,23 +653,23 @@ export type AppUncheckedCreateWithoutChatHistoriesInput = {
   isDelete?: boolean
 }
 
-export type AppCreateOrConnectWithoutChatHistoriesInput = {
+export type AppCreateOrConnectWithoutAgentWorkspacesInput = {
   where: Prisma.AppWhereUniqueInput
-  create: Prisma.XOR<Prisma.AppCreateWithoutChatHistoriesInput, Prisma.AppUncheckedCreateWithoutChatHistoriesInput>
+  create: Prisma.XOR<Prisma.AppCreateWithoutAgentWorkspacesInput, Prisma.AppUncheckedCreateWithoutAgentWorkspacesInput>
 }
 
-export type AppUpsertWithoutChatHistoriesInput = {
-  update: Prisma.XOR<Prisma.AppUpdateWithoutChatHistoriesInput, Prisma.AppUncheckedUpdateWithoutChatHistoriesInput>
-  create: Prisma.XOR<Prisma.AppCreateWithoutChatHistoriesInput, Prisma.AppUncheckedCreateWithoutChatHistoriesInput>
+export type AppUpsertWithoutAgentWorkspacesInput = {
+  update: Prisma.XOR<Prisma.AppUpdateWithoutAgentWorkspacesInput, Prisma.AppUncheckedUpdateWithoutAgentWorkspacesInput>
+  create: Prisma.XOR<Prisma.AppCreateWithoutAgentWorkspacesInput, Prisma.AppUncheckedCreateWithoutAgentWorkspacesInput>
   where?: Prisma.AppWhereInput
 }
 
-export type AppUpdateToOneWithWhereWithoutChatHistoriesInput = {
+export type AppUpdateToOneWithWhereWithoutAgentWorkspacesInput = {
   where?: Prisma.AppWhereInput
-  data: Prisma.XOR<Prisma.AppUpdateWithoutChatHistoriesInput, Prisma.AppUncheckedUpdateWithoutChatHistoriesInput>
+  data: Prisma.XOR<Prisma.AppUpdateWithoutAgentWorkspacesInput, Prisma.AppUncheckedUpdateWithoutAgentWorkspacesInput>
 }
 
-export type AppUpdateWithoutChatHistoriesInput = {
+export type AppUpdateWithoutAgentWorkspacesInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   appName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   appCover?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -682,7 +682,7 @@ export type AppUpdateWithoutChatHistoriesInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutAppsNestedInput
 }
 
-export type AppUncheckedUpdateWithoutChatHistoriesInput = {
+export type AppUncheckedUpdateWithoutAgentWorkspacesInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   appName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   appCover?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -717,7 +717,7 @@ export type AppUpdateWithoutUserInput = {
   createTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updateTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isDelete?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  chatHistories?: Prisma.ChatHistoryUpdateManyWithoutAppNestedInput
+  agentWorkspaces?: Prisma.AgentWorkspaceUpdateManyWithoutAppNestedInput
 }
 
 export type AppUncheckedUpdateWithoutUserInput = {
@@ -730,7 +730,7 @@ export type AppUncheckedUpdateWithoutUserInput = {
   createTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updateTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isDelete?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  chatHistories?: Prisma.ChatHistoryUncheckedUpdateManyWithoutAppNestedInput
+  agentWorkspaces?: Prisma.AgentWorkspaceUncheckedUpdateManyWithoutAppNestedInput
 }
 
 export type AppUncheckedUpdateManyWithoutUserInput = {
@@ -751,11 +751,11 @@ export type AppUncheckedUpdateManyWithoutUserInput = {
  */
 
 export type AppCountOutputType = {
-  chatHistories: number
+  agentWorkspaces: number
 }
 
 export type AppCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  chatHistories?: boolean | AppCountOutputTypeCountChatHistoriesArgs
+  agentWorkspaces?: boolean | AppCountOutputTypeCountAgentWorkspacesArgs
 }
 
 /**
@@ -771,8 +771,8 @@ export type AppCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensio
 /**
  * AppCountOutputType without action
  */
-export type AppCountOutputTypeCountChatHistoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ChatHistoryWhereInput
+export type AppCountOutputTypeCountAgentWorkspacesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AgentWorkspaceWhereInput
 }
 
 
@@ -788,7 +788,7 @@ export type AppSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = ru
   updateTime?: boolean
   isDelete?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  chatHistories?: boolean | Prisma.App$chatHistoriesArgs<ExtArgs>
+  agentWorkspaces?: boolean | Prisma.App$agentWorkspacesArgs<ExtArgs>
   _count?: boolean | Prisma.AppCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["app"]>
 
@@ -836,7 +836,7 @@ export type AppSelectScalar = {
 export type AppOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "appName" | "appCover" | "initPrompt" | "priority" | "userId" | "editTime" | "createTime" | "updateTime" | "isDelete", ExtArgs["result"]["app"]>
 export type AppInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  chatHistories?: boolean | Prisma.App$chatHistoriesArgs<ExtArgs>
+  agentWorkspaces?: boolean | Prisma.App$agentWorkspacesArgs<ExtArgs>
   _count?: boolean | Prisma.AppCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AppIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -850,7 +850,7 @@ export type $AppPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   name: "App"
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
-    chatHistories: Prisma.$ChatHistoryPayload<ExtArgs>[]
+    agentWorkspaces: Prisma.$AgentWorkspacePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: bigint
@@ -1258,7 +1258,7 @@ readonly fields: AppFieldRefs;
 export interface Prisma__AppClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  chatHistories<T extends Prisma.App$chatHistoriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.App$chatHistoriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ChatHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  agentWorkspaces<T extends Prisma.App$agentWorkspacesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.App$agentWorkspacesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentWorkspacePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1699,27 +1699,27 @@ export type AppDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.InternalA
 }
 
 /**
- * App.chatHistories
+ * App.agentWorkspaces
  */
-export type App$chatHistoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type App$agentWorkspacesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the ChatHistory
+   * Select specific fields to fetch from the AgentWorkspace
    */
-  select?: Prisma.ChatHistorySelect<ExtArgs> | null
+  select?: Prisma.AgentWorkspaceSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the ChatHistory
+   * Omit specific fields from the AgentWorkspace
    */
-  omit?: Prisma.ChatHistoryOmit<ExtArgs> | null
+  omit?: Prisma.AgentWorkspaceOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.ChatHistoryInclude<ExtArgs> | null
-  where?: Prisma.ChatHistoryWhereInput
-  orderBy?: Prisma.ChatHistoryOrderByWithRelationInput | Prisma.ChatHistoryOrderByWithRelationInput[]
-  cursor?: Prisma.ChatHistoryWhereUniqueInput
+  include?: Prisma.AgentWorkspaceInclude<ExtArgs> | null
+  where?: Prisma.AgentWorkspaceWhereInput
+  orderBy?: Prisma.AgentWorkspaceOrderByWithRelationInput | Prisma.AgentWorkspaceOrderByWithRelationInput[]
+  cursor?: Prisma.AgentWorkspaceWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.ChatHistoryScalarFieldEnum | Prisma.ChatHistoryScalarFieldEnum[]
+  distinct?: Prisma.AgentWorkspaceScalarFieldEnum | Prisma.AgentWorkspaceScalarFieldEnum[]
 }
 
 /**

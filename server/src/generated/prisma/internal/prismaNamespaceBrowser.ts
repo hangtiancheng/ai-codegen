@@ -53,7 +53,12 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   User: 'User',
   App: 'App',
-  ChatHistory: 'ChatHistory'
+  AgentWorkspace: 'AgentWorkspace',
+  AgentSession: 'AgentSession',
+  AgentTranscriptEvent: 'AgentTranscriptEvent',
+  AgentInteraction: 'AgentInteraction',
+  AgentMcpServer: 'AgentMcpServer',
+  AgentHook: 'AgentHook'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -105,18 +110,104 @@ export const AppScalarFieldEnum = {
 export type AppScalarFieldEnum = (typeof AppScalarFieldEnum)[keyof typeof AppScalarFieldEnum]
 
 
-export const ChatHistoryScalarFieldEnum = {
+export const AgentWorkspaceScalarFieldEnum = {
   id: 'id',
-  message: 'message',
-  messageType: 'messageType',
-  appId: 'appId',
   userId: 'userId',
+  appId: 'appId',
+  currentSessionId: 'currentSessionId',
+  permissionMode: 'permissionMode',
+  sandboxEnabled: 'sandboxEnabled',
+  memoryEnabled: 'memoryEnabled',
+  hooksEnabled: 'hooksEnabled',
+  modelOverride: 'modelOverride',
   createTime: 'createTime',
-  updateTime: 'updateTime',
-  isDelete: 'isDelete'
+  updateTime: 'updateTime'
 } as const
 
-export type ChatHistoryScalarFieldEnum = (typeof ChatHistoryScalarFieldEnum)[keyof typeof ChatHistoryScalarFieldEnum]
+export type AgentWorkspaceScalarFieldEnum = (typeof AgentWorkspaceScalarFieldEnum)[keyof typeof AgentWorkspaceScalarFieldEnum]
+
+
+export const AgentSessionScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  status: 'status',
+  context: 'context',
+  lastEventSequence: 'lastEventSequence',
+  activeSkills: 'activeSkills',
+  runtimeMetadata: 'runtimeMetadata',
+  createTime: 'createTime',
+  updateTime: 'updateTime',
+  lastActiveTime: 'lastActiveTime',
+  completedTime: 'completedTime'
+} as const
+
+export type AgentSessionScalarFieldEnum = (typeof AgentSessionScalarFieldEnum)[keyof typeof AgentSessionScalarFieldEnum]
+
+
+export const AgentTranscriptEventScalarFieldEnum = {
+  id: 'id',
+  sessionId: 'sessionId',
+  sequence: 'sequence',
+  turnId: 'turnId',
+  kind: 'kind',
+  payload: 'payload',
+  createTime: 'createTime'
+} as const
+
+export type AgentTranscriptEventScalarFieldEnum = (typeof AgentTranscriptEventScalarFieldEnum)[keyof typeof AgentTranscriptEventScalarFieldEnum]
+
+
+export const AgentInteractionScalarFieldEnum = {
+  id: 'id',
+  sessionId: 'sessionId',
+  turnId: 'turnId',
+  type: 'type',
+  status: 'status',
+  requestPayload: 'requestPayload',
+  responsePayload: 'responsePayload',
+  createTime: 'createTime',
+  updateTime: 'updateTime',
+  expiresTime: 'expiresTime',
+  answeredTime: 'answeredTime'
+} as const
+
+export type AgentInteractionScalarFieldEnum = (typeof AgentInteractionScalarFieldEnum)[keyof typeof AgentInteractionScalarFieldEnum]
+
+
+export const AgentMcpServerScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  name: 'name',
+  transport: 'transport',
+  command: 'command',
+  args: 'args',
+  url: 'url',
+  encryptedHeaders: 'encryptedHeaders',
+  encryptedEnv: 'encryptedEnv',
+  enabled: 'enabled',
+  status: 'status',
+  statusMessage: 'statusMessage',
+  lastCheckedTime: 'lastCheckedTime',
+  createTime: 'createTime',
+  updateTime: 'updateTime'
+} as const
+
+export type AgentMcpServerScalarFieldEnum = (typeof AgentMcpServerScalarFieldEnum)[keyof typeof AgentMcpServerScalarFieldEnum]
+
+
+export const AgentHookScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  event: 'event',
+  matcher: 'matcher',
+  command: 'command',
+  enabled: 'enabled',
+  timeoutMs: 'timeoutMs',
+  createTime: 'createTime',
+  updateTime: 'updateTime'
+} as const
+
+export type AgentHookScalarFieldEnum = (typeof AgentHookScalarFieldEnum)[keyof typeof AgentHookScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -125,6 +216,21 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const QueryMode = {
@@ -141,4 +247,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

@@ -6,6 +6,14 @@ export {
   type ApiErrorKind,
 } from "./api-error";
 export {
+  createAgentDirectory,
+  deleteAgentEntry,
+  fetchAgentFileTree,
+  isAgentFileConflictResponse,
+  renameAgentEntry,
+  writeAgentFile,
+} from "./agent-files-api";
+export {
   addApp,
   deleteApp,
   deleteAppByAdmin,
@@ -18,22 +26,11 @@ export {
   type AppPage,
 } from "./app-api";
 export { downloadAppCode } from "./app-download";
-export { fetchAppFileTree } from "./app-files";
 export {
   listAdminChatHistoryPage,
   listAppChatHistory,
   type ChatHistoryPage,
 } from "./chat-history-api";
-export {
-  runChatStream,
-  type ChatStreamHandlers,
-  type ChatStreamRequest,
-} from "./chat-stream-client";
-export {
-  parseStreamEvent,
-  type ParsedStreamEvent,
-  type RawStreamEvent,
-} from "./chat-stream-parser";
 export { decodeEnvelope } from "./decode-envelope";
 export { createHttpClient, type HttpClient } from "./http-client";
 export { httpClient } from "./http-client-singleton";

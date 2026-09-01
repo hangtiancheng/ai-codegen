@@ -22,5 +22,3 @@ export {
   toOffset,
 } from "./pagination.schema.js";
 export { promptSchema } from "./prompt.schema.js";
-export type { SseEvent } from "./sse.js";
-export { createSseResponse, formatSseEvent } from "./sse.js";

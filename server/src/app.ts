@@ -1,7 +1,7 @@
+import { createNodeWebSocket, type NodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
+import type { RuntimeManager } from "./agent-runtime/index.js";
 import type { AppService } from "./app-module/index.js";
-import type { ChatHistoryService } from "./chat-history/index.js";
-import type { CodegenService } from "./codegen-agent/index.js";
 import { env } from "./config/index.js";
 import type { PrismaDatabaseClient } from "./database/index.js";
 import {
@@ -12,10 +12,9 @@ import {
 } from "./middleware/index.js";
 import type { HealthService, MetricsService, RequestLogger } from "./observability/index.js";
 import { createRequestContextMiddleware } from "./observability/index.js";
-import type { RateLimiter } from "./rate-limit/index.js";
 import {
+  createAgentRoutes,
   createAppRoutes,
-  createChatHistoryRoutes,
   createManagementRoutes,
   createUserRoutes,
   healthRoutes,
@@ -24,15 +23,13 @@ import { type AppHonoEnv, type SessionStore, sessionMiddleware } from "./session
 import type { UserService } from "./user/index.js";
 
 export type AppDependencies = Readonly<{
-  aiGenerationRateLimiter: RateLimiter;
   appService: AppService;
-  chatHistoryService: ChatHistoryService;
-  codegenService: CodegenService;
   db: PrismaDatabaseClient;
   healthService: HealthService;
   metricsService: MetricsService;
   projectRootDir?: string;
   requestLogger?: RequestLogger;
+  runtimeManager: RuntimeManager;
   sessionStore: SessionStore;
   shutdown?: () => Promise<void>;
   userService: UserService;
@@ -40,8 +37,14 @@ export type AppDependencies = Readonly<{
 
 export { createDefaultDependencies } from "./app-dependencies.js";
 
-export const createApp = (deps: AppDependencies) => {
+export type CreatedApp = Readonly<{
+  app: Hono<AppHonoEnv>;
+  injectWebSocket: NodeWebSocket["injectWebSocket"];
+}>;
+
+export const createApp = (deps: AppDependencies): CreatedApp => {
   const app = new Hono<AppHonoEnv>();
+  const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
   const api = new Hono<AppHonoEnv>();
 
   app.onError(handleError);
@@ -62,13 +65,18 @@ export const createApp = (deps: AppDependencies) => {
   api.route(
     "/app",
     createAppRoutes({
-      aiGenerationRateLimiter: deps.aiGenerationRateLimiter,
       appService: deps.appService,
-      codegenService: deps.codegenService,
-      metricsService: deps.metricsService,
       ...(deps.projectRootDir !== undefined && {
         projectRootDir: deps.projectRootDir,
       }),
+    }),
+  );
+  api.route(
+    "/app",
+    createAgentRoutes({
+      appService: deps.appService,
+      manager: deps.runtimeManager,
+      upgradeWebSocket,
     }),
   );
   api.route(
@@ -78,13 +86,9 @@ export const createApp = (deps: AppDependencies) => {
       metricsService: deps.metricsService,
     }),
   );
-  api.route(
-    "/chat-history",
-    createChatHistoryRoutes({ chatHistoryService: deps.chatHistoryService }),
-  );
   app.route(`/${env.BASE_URL}`, api);
 
-  return app;
+  return { app, injectWebSocket };
 };
 
-export type AppType = ReturnType<typeof createApp>;
+export type AppType = CreatedApp["app"];

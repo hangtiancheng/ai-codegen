@@ -24,6 +24,21 @@ const baseEnvSchema = z.object({
     .transform((value) => value === "true"),
   MODEL_PROVIDER_HEALTH_CHECK_TIMEOUT_MS: z.coerce.number().int().min(500).default(5_000),
   LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal"]).default("info"),
+  // Base64-encoded 32-byte key used to AES-256-GCM encrypt MCP secrets at rest.
+  // The dev default MUST be overridden in production (enforced below).
+  MCP_SECRET_KEY: z.string().min(1).default("c3dpZnR5LWNvZGVnZW4tZGV2LW1jcC1zZWNyZXQhISE="),
+  AGENT_WORKSPACE_IDLE_MS: z.coerce
+    .number()
+    .int()
+    .min(60_000)
+    .default(15 * 60 * 1000),
+  AGENT_WS_MAX_MESSAGE_BYTES: z.coerce
+    .number()
+    .int()
+    .min(1024)
+    .default(512 * 1024),
+  GIT_SNAPSHOT_AUTHOR_NAME: z.string().min(1).default("Swifty Agent"),
+  GIT_SNAPSHOT_AUTHOR_EMAIL: z.string().min(1).default("agent@swifty.local"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PASSWORD_SALT: z.string().min(1).default("swifty"),
   PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
@@ -64,6 +79,13 @@ export const envSchema = baseEnvSchema.extend(aiEnvSchema.shape).superRefine((va
       code: "custom",
       message: "SESSION_SECRET must be overridden in production",
       path: ["SESSION_SECRET"],
+    });
+  }
+  if (value.MCP_SECRET_KEY === "c3dpZnR5LWNvZGVnZW4tZGV2LW1jcC1zZWNyZXQhISE=") {
+    ctx.addIssue({
+      code: "custom",
+      message: "MCP_SECRET_KEY must be overridden in production",
+      path: ["MCP_SECRET_KEY"],
     });
   }
   if (value.REDIS_URL === undefined) {

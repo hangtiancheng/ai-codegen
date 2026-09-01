@@ -1,24 +1,19 @@
 import { useState, type ReactNode } from "react";
+import { Group, Panel, Separator } from "react-resizable-panels";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { selectIsAdmin, useUserStore } from "@/shared/auth";
 import { useDeleteApp, useDeleteAppByAdmin } from "@/shared/query";
 import { type AppVo } from "@/shared/schemas";
-import { AppDetailModal, PageContainer } from "@/shared/ui";
+import { AppDetailModal } from "@/shared/ui";
+import { buildPreviewFixPrompt } from "./build-error-context";
 import { handleChatDownload } from "./chat-action-handlers";
 import { ChatActions } from "./chat-actions";
-import { buildPreviewFixPrompt } from "./build-error-context";
-import { ChatComposer } from "./chat-composer";
 import { ChatHeader } from "./chat-header";
-import { MessageList } from "./message-list";
-import { PreviewErrorPanel } from "./preview-error-panel";
-import { PreviewPanel } from "./preview-panel";
-import { SelectedElementPanel } from "./selected-element-panel";
-import { useChatHistoryFeed } from "./use-chat-history-feed";
-import { useChatSession } from "./use-chat-session";
-import { usePreviewErrors } from "./use-preview-errors";
-import { useVisualEditor } from "./use-visual-editor";
-import { useWebContainerPreview } from "./use-webcontainer-preview";
+import { ChatPane } from "./chat-pane";
+import { useAgentSocket } from "./use-agent-socket";
+import { isAgentBusy, useAgentTranscript } from "./use-agent-transcript";
+import { WorkspacePanel, WorkspaceProvider } from "./workspace";
 
 export function AppChatWorkspace({ app }: { readonly app: AppVo }): ReactNode {
   const navigate = useNavigate();
@@ -26,45 +21,22 @@ export function AppChatWorkspace({ app }: { readonly app: AppVo }): ReactNode {
   const [downloading, setDownloading] = useState(false);
   const user = useUserStore((state) => state.user);
   const isAdmin = useUserStore(selectIsAdmin);
-  const history = useChatHistoryFeed(app.id);
-  const preview = useWebContainerPreview(
-    app.id,
-    history.loaded && history.records.length >= 2,
-  );
   const deleteApp = useDeleteApp();
   const deleteAppByAdmin = useDeleteAppByAdmin();
-  const visualEditor = useVisualEditor(preview.previewUrl);
-  const previewErrors = usePreviewErrors();
+
   const isOwner = app.userId === user?.id;
   const canManage = isAdmin || isOwner;
-  const shouldAutoSendInitialPrompt = isOwner;
-  const session = useChatSession(
-    app,
-    canManage,
-    shouldAutoSendInitialPrompt,
-    history.loaded,
-    history.records,
-    visualEditor,
-    () => {
-      previewErrors.clear();
-      preview.clearError();
-      preview.resync();
-    },
-  );
-  const fixablePreviewError =
-    previewErrors.latest ??
-    (preview.error === undefined
-      ? undefined
-      : {
-          message: preview.error,
-          ...(preview.logs.length > 0 && { stack: preview.logs }),
-        });
+
+  const { state, dispatch } = useAgentTranscript();
+  const socket = useAgentSocket({
+    appId: app.id,
+    lastSequence: state.lastSequence,
+    dispatch,
+  });
+  const agentRunning = isAgentBusy(state.runtimeStatus);
 
   return (
-    <PageContainer
-      title="Chat Generation"
-      description="Stream changes, preview output, and select visual elements safely."
-    >
+    <div className="flex h-[calc(100dvh-8.5rem)] min-h-[40rem] flex-col gap-3 px-4 py-4">
       <ChatHeader
         app={app}
         canManage={canManage}
@@ -76,56 +48,38 @@ export function AppChatWorkspace({ app }: { readonly app: AppVo }): ReactNode {
         downloading={downloading}
         onDownload={() => handleChatDownload(app, setDownloading)}
       />
-      <div className="grid min-h-180 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <div className="flex min-h-0 flex-col gap-4">
-          <MessageList
-            messages={session.messages}
-            loadingHistory={history.fetching}
-            hasMoreHistory={history.hasMore}
-            onLoadMore={history.loadMore}
-          />
-          <SelectedElementPanel
-            element={visualEditor.selectedElement}
-            onClear={visualEditor.clearSelection}
-          />
-          <PreviewErrorPanel
-            error={fixablePreviewError}
-            canFix={canManage}
-            fixing={session.generating}
-            onClear={() => {
-              previewErrors.clear();
-              preview.clearError();
-            }}
-            onFix={() => {
-              if (fixablePreviewError === undefined) return;
-              previewErrors.clear();
-              preview.clearError();
-              session.send(buildPreviewFixPrompt(fixablePreviewError));
-            }}
-          />
-          <ChatComposer
-            value={session.input}
-            generating={session.generating}
-            canManage={canManage}
-            hasSelectedElement={visualEditor.selectedElement !== undefined}
-            onChange={session.setInput}
-            onSend={() => session.send(session.input)}
-          />
-        </div>
-        <PreviewPanel
-          previewUrl={preview.previewUrl}
-          status={preview.status}
-          error={preview.error}
-          logs={preview.logs}
-          editMode={visualEditor.editMode}
-          canEdit={isOwner}
-          generating={session.generating}
-          iframeRef={visualEditor.iframeRef}
-          onIframeLoad={visualEditor.handleIframeLoad}
-          onRefresh={() => preview.reload(visualEditor.iframeRef.current)}
-          onToggleEditMode={visualEditor.toggleEditMode}
-        />
-      </div>
+      <WorkspaceProvider appId={app.id} enabled agentRunning={agentRunning}>
+        <Group orientation="horizontal" className="min-h-0 flex-1">
+          <Panel defaultSize="42" minSize="26">
+            <ChatPane
+              appId={app.id}
+              state={state}
+              canRun={canManage}
+              run={socket.run}
+              abort={socket.abort}
+              respondPermission={socket.respondPermission}
+              respondQuestion={socket.respondQuestion}
+              dispatch={dispatch}
+              className="h-full"
+            />
+          </Panel>
+          <Separator className="group relative flex w-2 shrink-0 items-center justify-center outline-none">
+            <span className="bg-border group-hover:bg-primary/50 h-16 w-1 rounded-full transition-colors" />
+          </Separator>
+          <Panel defaultSize="58" minSize="30">
+            <WorkspacePanel
+              className="h-full"
+              canEdit={isOwner}
+              canFix={canManage}
+              onFixError={(error) => {
+                socket.run(buildPreviewFixPrompt(error), {
+                  previewError: error.message,
+                });
+              }}
+            />
+          </Panel>
+        </Group>
+      </WorkspaceProvider>
       <AppDetailModal
         open={detailsOpen}
         app={app}
@@ -143,6 +97,6 @@ export function AppChatWorkspace({ app }: { readonly app: AppVo }): ReactNode {
           );
         }}
       />
-    </PageContainer>
+    </div>
   );
 }

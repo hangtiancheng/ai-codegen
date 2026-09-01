@@ -10,5 +10,10 @@
  */
 export type * from './models/User.js'
 export type * from './models/App.js'
-export type * from './models/ChatHistory.js'
+export type * from './models/AgentWorkspace.js'
+export type * from './models/AgentSession.js'
+export type * from './models/AgentTranscriptEvent.js'
+export type * from './models/AgentInteraction.js'
+export type * from './models/AgentMcpServer.js'
+export type * from './models/AgentHook.js'
 export type * from './commonInputTypes.js'

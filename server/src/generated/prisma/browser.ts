@@ -28,7 +28,32 @@ export type User = Prisma.UserModel
  */
 export type App = Prisma.AppModel
 /**
- * Model ChatHistory
+ * Model AgentWorkspace
  * 
  */
-export type ChatHistory = Prisma.ChatHistoryModel
+export type AgentWorkspace = Prisma.AgentWorkspaceModel
+/**
+ * Model AgentSession
+ * 
+ */
+export type AgentSession = Prisma.AgentSessionModel
+/**
+ * Model AgentTranscriptEvent
+ * 
+ */
+export type AgentTranscriptEvent = Prisma.AgentTranscriptEventModel
+/**
+ * Model AgentInteraction
+ * 
+ */
+export type AgentInteraction = Prisma.AgentInteractionModel
+/**
+ * Model AgentMcpServer
+ * 
+ */
+export type AgentMcpServer = Prisma.AgentMcpServerModel
+/**
+ * Model AgentHook
+ * 
+ */
+export type AgentHook = Prisma.AgentHookModel
