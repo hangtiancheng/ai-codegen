@@ -1,2 +1,13 @@
+packages:
+  - server
+  - client
+
+allowBuilds:
+  '@prisma/engines': false
+  esbuild: false
+  msw: false
+  prisma: false
+
 minimumReleaseAgeExclude:
   - '@swifty.js/sentry@0.0.7'
+  - '@swifty.js/swifty@0.0.22'

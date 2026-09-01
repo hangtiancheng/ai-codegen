@@ -1,6 +1,6 @@
-# AI Codegen Client
+# Swifty Codegen Client
 
-The AI Codegen Client is the React frontend for the AI code generation platform. It provides the product interface for browsing generated apps, creating new apps from prompts, chatting with the AI code generator, previewing generated output, editing app metadata, and managing users, apps, and chat history from admin pages.
+The Swifty Codegen Client is the React frontend for the AI code generation platform. It provides the product interface for browsing generated apps, creating new apps from prompts, chatting with the AI code generator, previewing generated output, editing app metadata, and managing users, apps, and chat history from admin pages.
 
 The client is built with React 19, Vite, TypeScript, React Router, TanStack Query, TanStack Form, Zod, Tailwind CSS, and a small shared UI system. Runtime configuration is validated with Zod, server responses are decoded through schemas, and streaming code generation is consumed through Server-Sent Events.
 
@@ -203,7 +203,7 @@ Recommended local tools:
 
 - Node.js compatible with Vite 7 and React 19.
 - pnpm through the repository workspace.
-- A running AI Codegen Server.
+- A running Swifty Codegen Server.
 - A browser with modern ES module support.
 
 The frontend does not directly talk to OpenAI, PostgreSQL, Redis, or MinIO. Those dependencies belong to the backend. The frontend only needs the backend API URL.
@@ -604,29 +604,28 @@ The common modal pattern is:
 
 ## Generated App Preview
 
-The chat workspace renders generated output inside a preview panel.
+The chat workspace runs generated Vite projects in a browser-side WebContainer.
 
-Static preview URLs are used for generated output.
-
-URL helpers live in:
+The preview lifecycle is:
 
 ```text
-src/shared/config/urls.ts
+GET /api/app/files/:appId
+  -> validate and mount the project file tree
+  -> npm install
+  -> npm run dev -- --host 0.0.0.0
+  -> render the WebContainer server-ready URL in the preview iframe
 ```
 
-Important helpers:
+After a generation request completes, the workspace fetches and mounts the latest source tree again. The running Vite server observes those filesystem changes and updates the preview through HMR. The Refresh button uses WebContainer's `reloadPreview` helper.
+
+WebContainer requires a cross-origin isolated host page. Both the Vite development server and Vite preview server send these headers:
 
 ```text
-getStaticPreviewUrl(codegenType, appId)
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: credentialless
 ```
 
-Preview refresh appends a version query parameter:
-
-```text
-?v=<number>
-```
-
-This forces the iframe to reload without changing the underlying path.
+The visual editor is injected into cross-origin preview responses with `WebContainer.setPreviewScript()`. Parent/preview communication uses `postMessage` and validates the preview origin. Runtime exceptions, rejected promises, and `console.error` calls are surfaced in the chat workspace with an action that sends the error back to the generation agent.
 
 ## Forms and Validation
 

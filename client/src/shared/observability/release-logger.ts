@@ -1,5 +1,8 @@
 export type RuntimeIssueKind =
-  "root-error" | "stream-failure" | "schema-parse-failure";
+  | "root-error"
+  | "stream-failure"
+  | "schema-parse-failure"
+  | "preview-runtime-failure";
 
 export type RuntimeIssue = {
   readonly kind: RuntimeIssueKind;

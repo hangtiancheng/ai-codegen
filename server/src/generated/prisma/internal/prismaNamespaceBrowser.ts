@@ -94,7 +94,6 @@ export const AppScalarFieldEnum = {
   appName: 'appName',
   appCover: 'appCover',
   initPrompt: 'initPrompt',
-  codegenType: 'codegenType',
   priority: 'priority',
   userId: 'userId',
   editTime: 'editTime',

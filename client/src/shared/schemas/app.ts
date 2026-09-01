@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { appIdSchema, userIdSchema } from "./branded-ids";
-import { codegenTypeSchema } from "./codegen-type";
 import { isoTimestampSchema, nonNegativeIntSchema } from "./primitives";
 import { userVoSchema } from "./user";
 
@@ -19,7 +18,6 @@ const appVoBaseSchema = z.object({
 
 export const appVoSchema = appVoBaseSchema.extend({
   appCover: appCoverValueSchema.optional(),
-  codegenType: codegenTypeSchema,
 });
 
 export type AppVo = z.infer<typeof appVoSchema>;

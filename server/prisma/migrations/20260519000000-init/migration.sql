@@ -2,9 +2,6 @@
 CREATE TYPE "UserRole" AS ENUM ('USER', 'ADMIN');
 
 -- CreateEnum
-CREATE TYPE "CodegenType" AS ENUM ('VANILLA_HTML', 'MULTI_FILES', 'VITE_PROJECT');
-
--- CreateEnum
 CREATE TYPE "ChatMessageType" AS ENUM ('USER', 'AI');
 
 -- CreateTable
@@ -30,9 +27,6 @@ CREATE TABLE "apps" (
   "app_name" VARCHAR(256),
   "app_cover" VARCHAR(512),
   "init_prompt" TEXT,
-  "codegen_type" "CodegenType" NOT NULL DEFAULT 'MULTI_FILES',
-  "deploy_key" VARCHAR(64),
-  "deploy_time" TIMESTAMP(3),
   "priority" INTEGER NOT NULL DEFAULT 0,
   "user_id" BIGINT NOT NULL,
   "edit_time" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -62,9 +56,6 @@ CREATE UNIQUE INDEX "users_user_account_key" ON "users"("user_account");
 
 -- CreateIndex
 CREATE INDEX "idx_users_username" ON "users"("username");
-
--- CreateIndex
-CREATE UNIQUE INDEX "apps_deploy_key_key" ON "apps"("deploy_key");
 
 -- CreateIndex
 CREATE INDEX "idx_apps_app_name" ON "apps"("app_name");

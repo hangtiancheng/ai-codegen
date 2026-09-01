@@ -2,8 +2,7 @@ import { Edit, Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { createPortal } from "react-dom";
 import { formatDateTime } from "@/shared/lib";
-import { formatCodegenType, type AppVo } from "@/shared/schemas";
-import { Badge } from "./badge";
+import { type AppVo } from "@/shared/schemas";
 import { Button } from "./button";
 import { ConfirmationDialog } from "./confirmation-dialog";
 import { UserInfo } from "./user-info";
@@ -51,13 +50,6 @@ export function AppDetailModal({
             <UserInfo user={app?.user} size="sm" />
           </InfoRow>
           <InfoRow label="Created">{formatDateTime(app?.createTime)}</InfoRow>
-          <InfoRow label="Type">
-            {app ? (
-              <Badge variant="blue">{formatCodegenType(app.codegenType)}</Badge>
-            ) : (
-              "Unknown"
-            )}
-          </InfoRow>
         </dl>
         {showActions ? (
           <div className="border-border mt-6 flex gap-3 border-t pt-4">

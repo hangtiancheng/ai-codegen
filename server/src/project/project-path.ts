@@ -21,5 +21,5 @@ export const ensureParentDir = async (filePath: string): Promise<void> => {
   await mkdir(dirname(filePath), { recursive: true });
 };
 
-export const buildCodeOutputDir = (rootDir: string, codegenType: string, appId: string): string =>
-  resolve(rootDir, "tmp", "code_output", `${codegenType}_${appId}`);
+export const buildCodeOutputDir = (rootDir: string, appId: string): string =>
+  resolve(rootDir, "tmp", "code_output", appId);

@@ -2,14 +2,10 @@ import { z } from "zod";
 import { idSchema } from "../common/id.schema.js";
 import { promptSchema } from "../common/index.js";
 import { pageRequestSchema } from "../common/pagination.schema.js";
-import { CodegenType } from "../generated/prisma/enums.js";
-
-export const codegenTypeSchema = z.enum(CodegenType);
 
 export const appEntitySchema = z.object({
   appCover: z.string().nullable(),
   appName: z.string().nullable(),
-  codegenType: codegenTypeSchema,
   createTime: z.date(),
   id: z.bigint(),
   initPrompt: z.string().nullable(),
@@ -21,7 +17,6 @@ export const appEntitySchema = z.object({
 export const appVoSchema = z.object({
   appCover: z.string().nullable(),
   appName: z.string().nullable(),
-  codegenType: codegenTypeSchema,
   createTime: z.date(),
   id: z.string(),
   initPrompt: z.string().nullable(),
@@ -55,14 +50,12 @@ export const appChatCodegenQuerySchema = z.object({
 export const appAdminUpdateSchema = z.object({
   appCover: z.string().max(512).optional(),
   appName: z.string().min(1).max(256).optional(),
-  codegenType: codegenTypeSchema.optional(),
   id: idSchema,
   priority: z.number().int().min(0).max(99).optional(),
 });
 
 export const appPageQuerySchema = pageRequestSchema.extend({
   appName: z.string().min(1).max(256).optional(),
-  codegenType: codegenTypeSchema.optional(),
   id: idSchema.optional(),
   initPrompt: promptSchema.optional(),
   priority: z.number().int().min(0).max(99).optional(),

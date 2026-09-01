@@ -1,7 +1,7 @@
-import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
-import typescript from "@rollup/plugin-typescript";
 import json from "@rollup/plugin-json";
+import resolve from "@rollup/plugin-node-resolve";
+import typescript from "@rollup/plugin-typescript";
 
 export default {
   input: "src/index.ts",
@@ -12,9 +12,9 @@ export default {
   },
   external: [
     /^node:/,
-    /^@langchain\//,
     /^@prisma\//,
     /^@hono\//,
+    /^@swifty\.js\//,
     "archiver",
     "bullmq",
     "dayjs",
@@ -25,8 +25,6 @@ export default {
     "hono-pino",
     "iconv-lite",
     "ioredis",
-    "langchain",
-    "marked",
     "minio",
     "mysql2",
     "node-cron",

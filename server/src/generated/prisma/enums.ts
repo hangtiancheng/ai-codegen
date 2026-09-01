@@ -17,14 +17,6 @@ export const UserRole = {
 export type UserRole = (typeof UserRole)[keyof typeof UserRole]
 
 
-export const CodegenType = {
-  VANILLA_HTML: 'VANILLA_HTML',
-  MULTI_FILES: 'MULTI_FILES'
-} as const
-
-export type CodegenType = (typeof CodegenType)[keyof typeof CodegenType]
-
-
 export const ChatMessageType = {
   USER: 'USER',
   AI: 'AI'

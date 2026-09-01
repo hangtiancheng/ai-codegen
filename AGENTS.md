@@ -121,19 +121,7 @@ Base path: the server mounts routes under `/${BASE_URL}` and defaults `BASE_URL`
   - server: [management-routes.ts](./server/src/routes/management-routes.ts)
   - client: none
   - status: server-only.
-- `POST /api/workflow/execute`
-  - server: [workflow-demo-routes.ts](./server/src/routes/workflow-demo-routes.ts)
-  - client: none
-  - status: server-only.
-- `GET /api/workflow/execute-flux`
-  - server: [workflow-demo-routes.ts](./server/src/routes/workflow-demo-routes.ts)
-  - client: none
-  - status: server-only.
-- `GET /api/workflow/execute-sse`
-  - server: [workflow-demo-routes.ts](./server/src/routes/workflow-demo-routes.ts)
-  - client: none
-  - status: server-only.
-- `GET /api/static/*`
-  - server: [static-routes.ts](./server/src/routes/static-routes.ts)
-  - client: [urls.ts](./client/src/shared/config/urls.ts)
-  - status: aligned through static preview URLs.
+- `GET /api/app/files/:appId`
+  - server: [app-routes.ts](./server/src/routes/app-routes.ts), [app-files.ts](./server/src/routes/app-files.ts)
+  - client: [app-files.ts](./client/src/shared/api/app-files.ts)
+  - status: aligned through WebContainer project file trees.

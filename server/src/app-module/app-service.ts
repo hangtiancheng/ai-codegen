@@ -13,11 +13,7 @@ import { createListAppVoByPageOperation } from "./app-list.js";
 import { requireOwner } from "./app-owner.js";
 import type { AppRepository } from "./app-repository.js";
 
-export type AppCodegenRouter = Readonly<{
-  routeCodegenType: (initPrompt: string) => Promise<AppModel["codegenType"]>;
-}>;
-
-export const createAppService = (appRepository: AppRepository, codegenRouter: AppCodegenRouter) => {
+export const createAppService = (appRepository: AppRepository) => {
   const requireActiveById = async (id: bigint): Promise<AppModel> => {
     const app = await appRepository.findActiveById(id);
     if (app === null) {
@@ -27,10 +23,8 @@ export const createAppService = (appRepository: AppRepository, codegenRouter: Ap
   };
 
   const addApp = async (input: AppAddRequest, userId: bigint): Promise<string> => {
-    const codegenType = await codegenRouter.routeCodegenType(input.initPrompt);
     const created = await appRepository.createApp({
       appName: String(Date.now()),
-      codegenType,
       initPrompt: input.initPrompt,
       userId,
     });
@@ -64,9 +58,6 @@ export const createAppService = (appRepository: AppRepository, codegenRouter: Ap
     await appRepository.updateById(input.id, {
       ...(input.appCover !== undefined && { appCover: input.appCover }),
       ...(input.appName !== undefined && { appName: input.appName }),
-      ...(input.codegenType !== undefined && {
-        codegenType: input.codegenType,
-      }),
       ...(input.priority !== undefined && { priority: input.priority }),
     });
     return true;

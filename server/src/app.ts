@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { AppService } from "./app-module/index.js";
 import type { ChatHistoryService } from "./chat-history/index.js";
+import type { CodegenService } from "./codegen-agent/index.js";
 import { env } from "./config/index.js";
 import type { PrismaDatabaseClient } from "./database/index.js";
 import {
@@ -9,35 +10,24 @@ import {
   handleError,
   handleNotFound,
 } from "./middleware/index.js";
-import type {
-  HealthService,
-  MetricsService,
-  RequestLogger,
-} from "./observability/index.js";
+import type { HealthService, MetricsService, RequestLogger } from "./observability/index.js";
 import { createRequestContextMiddleware } from "./observability/index.js";
 import type { RateLimiter } from "./rate-limit/index.js";
 import {
   createAppRoutes,
   createChatHistoryRoutes,
   createManagementRoutes,
-  createStaticRoutes,
   createUserRoutes,
   healthRoutes,
-  workflowDemoRoutes,
 } from "./routes/index.js";
-import {
-  type AppHonoEnv,
-  type SessionStore,
-  sessionMiddleware,
-} from "./session/index.js";
+import { type AppHonoEnv, type SessionStore, sessionMiddleware } from "./session/index.js";
 import type { UserService } from "./user/index.js";
-import type { CodegenWorkflow } from "./workflow/index.js";
 
 export type AppDependencies = Readonly<{
   aiGenerationRateLimiter: RateLimiter;
   appService: AppService;
   chatHistoryService: ChatHistoryService;
-  codegenWorkflow: CodegenWorkflow;
+  codegenService: CodegenService;
   db: PrismaDatabaseClient;
   healthService: HealthService;
   metricsService: MetricsService;
@@ -45,7 +35,6 @@ export type AppDependencies = Readonly<{
   requestLogger?: RequestLogger;
   sessionStore: SessionStore;
   shutdown?: () => Promise<void>;
-  staticOutputRootDir?: string;
   userService: UserService;
 }>;
 
@@ -75,7 +64,7 @@ export const createApp = (deps: AppDependencies) => {
     createAppRoutes({
       aiGenerationRateLimiter: deps.aiGenerationRateLimiter,
       appService: deps.appService,
-      codegenWorkflow: deps.codegenWorkflow,
+      codegenService: deps.codegenService,
       metricsService: deps.metricsService,
       ...(deps.projectRootDir !== undefined && {
         projectRootDir: deps.projectRootDir,
@@ -92,14 +81,6 @@ export const createApp = (deps: AppDependencies) => {
   api.route(
     "/chat-history",
     createChatHistoryRoutes({ chatHistoryService: deps.chatHistoryService }),
-  );
-  api.route("/workflow", workflowDemoRoutes);
-  api.route(
-    "/",
-    createStaticRoutes({
-      outputRootDir:
-        deps.staticOutputRootDir ?? `${process.cwd()}/tmp/code_output`,
-    }),
   );
   app.route(`/${env.BASE_URL}`, api);
 

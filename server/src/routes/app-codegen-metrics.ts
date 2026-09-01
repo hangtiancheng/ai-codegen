@@ -1,19 +1,21 @@
+import type { CodegenSseEvent } from "../codegen-agent/index.js";
 import type { MetricsService } from "../observability/index.js";
-import type { WorkflowSseEvent } from "../workflow/index.js";
 
-export const instrumentWorkflow = async function* (
-  workflowEvents: AsyncIterable<WorkflowSseEvent>,
+const MODEL_ROLE = "agent";
+
+export const instrumentCodegenStream = async function* (
+  events: AsyncIterable<CodegenSseEvent>,
   metricsService: MetricsService,
-): AsyncGenerator<WorkflowSseEvent> {
+): AsyncGenerator<CodegenSseEvent> {
   const startedAt = Date.now();
   let status: "success" | "error" = "success";
   try {
-    for await (const event of workflowEvents) {
+    for await (const event of events) {
       if (event.event === "business-error") {
         status = "error";
         metricsService.recordAiError({
           errorType: "business-error",
-          modelRole: "streaming",
+          modelRole: MODEL_ROLE,
         });
       }
       yield event;
@@ -22,14 +24,14 @@ export const instrumentWorkflow = async function* (
     status = "error";
     metricsService.recordAiError({
       errorType: error instanceof Error ? error.name : "unknown",
-      modelRole: "streaming",
+      modelRole: MODEL_ROLE,
     });
     throw error;
   } finally {
-    metricsService.recordAiRequest({ modelRole: "streaming", status });
+    metricsService.recordAiRequest({ modelRole: MODEL_ROLE, status });
     metricsService.recordAiResponseTime({
       durationMs: Date.now() - startedAt,
-      modelRole: "streaming",
+      modelRole: MODEL_ROLE,
     });
   }
 };

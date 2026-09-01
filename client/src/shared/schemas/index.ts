@@ -4,7 +4,6 @@ export * from "./base-response";
 export * from "./branded-ids";
 export * from "./chat-history";
 export * from "./chat-stream";
-export * from "./codegen-type";
 export * from "./pagination";
 export * from "./primitives";
 export * from "./route-params";

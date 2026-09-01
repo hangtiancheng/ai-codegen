@@ -1,7 +1,7 @@
 import { Info, Pencil } from "lucide-react";
 import { type ReactNode } from "react";
-import { formatCodegenType, type AppVo } from "@/shared/schemas";
-import { Badge, Button } from "@/shared/ui";
+import { type AppVo } from "@/shared/schemas";
+import { Button } from "@/shared/ui";
 
 export type ChatHeaderProps = {
   readonly app: AppVo;
@@ -22,9 +22,6 @@ export function ChatHeader({
         <h1 className="text-foreground truncate text-xl font-semibold">
           {app.appName}
         </h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <Badge variant="blue">{formatCodegenType(app.codegenType)}</Badge>
-        </div>
       </div>
       <div className="flex gap-2">
         <Button variant="outline" onClick={onDetails}>

@@ -13,11 +13,6 @@ enum UserRole {
   ADMIN
 }
 
-enum CodegenType {
-  VANILLA_HTML
-  MULTI_FILES
-}
-
 enum ChatMessageType {
   USER
   AI
@@ -44,17 +39,16 @@ model User {
 }
 
 model App {
-  id          BigInt      @id @default(autoincrement())
-  appName     String?     @map("app_name") @db.VarChar(256)
-  appCover    String?     @map("app_cover") @db.VarChar(512)
-  initPrompt  String?     @map("init_prompt") @db.Text
-  codegenType CodegenType @default(MULTI_FILES) @map("codegen_type")
-  priority    Int         @default(0)
-  userId      BigInt      @map("user_id")
-  editTime    DateTime    @default(now()) @map("edit_time")
-  createTime  DateTime    @default(now()) @map("create_time")
-  updateTime  DateTime    @updatedAt @map("update_time")
-  isDelete    Boolean     @default(false) @map("is_delete")
+  id         BigInt   @id @default(autoincrement())
+  appName    String?  @map("app_name") @db.VarChar(256)
+  appCover   String?  @map("app_cover") @db.VarChar(512)
+  initPrompt String?  @map("init_prompt") @db.Text
+  priority   Int      @default(0)
+  userId     BigInt   @map("user_id")
+  editTime   DateTime @default(now()) @map("edit_time")
+  createTime DateTime @default(now()) @map("create_time")
+  updateTime DateTime @updatedAt @map("update_time")
+  isDelete   Boolean  @default(false) @map("is_delete")
 
   user          User          @relation(fields: [userId], references: [id])
   chatHistories ChatHistory[]

@@ -1,9 +1,11 @@
 import { fetchEventSource } from "@microsoft/fetch-event-source";
+import { type ChatStreamToolPayload } from "@/shared/schemas";
 import { ApiException } from "./api-error";
 import { parseStreamEvent, type ParsedStreamEvent } from "./chat-stream-parser";
 
 export type ChatStreamHandlers = {
   readonly onChunk: (chunk: string) => void;
+  readonly onTool: (payload: ChatStreamToolPayload) => void;
   readonly onDone: () => void;
   readonly onError: (error: ApiException) => void;
 };
@@ -48,6 +50,9 @@ function dispatch(
   switch (parsed.kind) {
     case "message":
       handlers.onChunk(parsed.payload.d);
+      break;
+    case "tool":
+      handlers.onTool(parsed.payload);
       break;
     case "done":
       state.closed = true;

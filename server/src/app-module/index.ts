@@ -21,7 +21,6 @@ export {
   appPageQuerySchema,
   appUpdateSchema,
   appVoSchema,
-  codegenTypeSchema,
 } from "./app.schema.js";
 export type {
   AppListFilter,
@@ -29,8 +28,7 @@ export type {
   ListAppParams,
 } from "./app-repository.js";
 export { createAppRepository } from "./app-repository.js";
-export type { AppCodegenRouter, AppService } from "./app-service.js";
+export type { AppService } from "./app-service.js";
 export { createAppService } from "./app-service.js";
 export type { SortableAppField } from "./app-sorting.js";
 export { resolveAppSortField } from "./app-sorting.js";
-export { createDefaultCodegenRouter } from "./codegen-router.js";

@@ -1,9 +1,9 @@
 -- docker exec -i postgres psql -U root -W pass < ./sql/postgres.sql
 
-DROP DATABASE IF EXISTS ai_codegen;
-CREATE DATABASE ai_codegen WITH ENCODING 'UTF8' LC_COLLATE 'en_US.UTF-8' LC_CTYPE 'en_US.UTF-8' TEMPLATE template0;
+DROP DATABASE IF EXISTS swifty_codegen;
+CREATE DATABASE swifty_codegen WITH ENCODING 'UTF8' LC_COLLATE 'en_US.UTF-8' LC_CTYPE 'en_US.UTF-8' TEMPLATE template0;
 
-\c ai_codegen;
+\c swifty_codegen;
 
 CREATE OR REPLACE FUNCTION set_update_time()
 RETURNS TRIGGER AS $$
@@ -52,16 +52,12 @@ CREATE TABLE IF NOT EXISTS "apps" (
     app_name     VARCHAR(256),
     app_cover    VARCHAR(512),
     init_prompt  TEXT,
-    codegen_type VARCHAR(64),
-    deploy_key   VARCHAR(64),
-    deploy_time  VARCHAR(64),
     priority     INT          NOT NULL DEFAULT 0,
     user_id      BIGINT       NOT NULL,
     edit_time    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     create_time  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    is_delete    SMALLINT     NOT NULL DEFAULT 0,
-    CONSTRAINT uk_deploy_key UNIQUE (deploy_key)
+    is_delete    SMALLINT     NOT NULL DEFAULT 0
 );
 
 COMMENT ON TABLE  "apps"              IS 'app';
@@ -69,9 +65,6 @@ COMMENT ON COLUMN "apps".id           IS 'id';
 COMMENT ON COLUMN "apps".app_name     IS 'app name';
 COMMENT ON COLUMN "apps".app_cover    IS 'app cover';
 COMMENT ON COLUMN "apps".init_prompt  IS 'init prompt';
-COMMENT ON COLUMN "apps".codegen_type IS 'codegen type';
-COMMENT ON COLUMN "apps".deploy_key   IS 'deploy key';
-COMMENT ON COLUMN "apps".deploy_time  IS 'deploy time';
 COMMENT ON COLUMN "apps".priority     IS 'priority';
 COMMENT ON COLUMN "apps".user_id      IS 'creator user id';
 COMMENT ON COLUMN "apps".edit_time    IS 'edit time';

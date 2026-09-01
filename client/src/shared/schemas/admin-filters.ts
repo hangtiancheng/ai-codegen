@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { appIdSchema, userIdSchema } from "./branded-ids";
 import { chatMessageTypeSchema } from "./chat-history";
-import { codegenTypeSchema } from "./codegen-type";
 import { paginationQuerySchema } from "./pagination";
 import { isoTimestampSchema } from "./primitives";
 import { userRoleSchema } from "./user-role";
@@ -18,7 +17,6 @@ export const appQueryRequestSchema = paginationQuerySchema.extend({
   id: appIdSchema.optional(),
   appName: z.string().optional(),
   initPrompt: z.string().optional(),
-  codegenType: codegenTypeSchema.optional(),
   userId: userIdSchema.optional(),
   priority: z.number().int().nonnegative().optional(),
 });

@@ -35,7 +35,7 @@ export function GlobalHeader(): ReactNode {
           onClick={() => navigate("/")}
           className="text-foreground flex items-center gap-3 text-xl font-medium"
         >
-          AI App Generator
+          Swifty Codegen
         </button>
         <nav className="hidden items-center gap-1 md:flex">
           {items.map((item) => (

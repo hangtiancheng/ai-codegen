@@ -1,6 +1,6 @@
-# AI Codegen Server
+# Swifty Codegen Server
 
-The AI Codegen Server is the backend service for the AI code generation platform. It is a TypeScript Hono application that manages users, applications, chat history, AI-assisted code generation, generated project persistence, static serving, health checks, and operational logging.
+The Swifty Codegen Server is the backend service for the AI code generation platform. It is a TypeScript Hono application that manages users, applications, chat history, AI-assisted code generation, generated project persistence, static serving, health checks, and operational logging.
 
 The server is designed around strict runtime validation with Zod, strict TypeScript typing, local OpenAI model execution, Prisma-backed persistence, and optional Redis-backed infrastructure.
 
@@ -212,7 +212,7 @@ cp server/.env.example server/.env
 Edit `server/.env` and provide at least:
 
 ```env
-DATABASE_URL=postgresql://root:pass@localhost:5432/ai_codegen
+DATABASE_URL=postgresql://root:pass@localhost:5432/swifty_codegen
 OPENAI_BASE_URL=http://localhost:11434
 PASSWORD_SALT=<private-random-salt>
 SESSION_SECRET=<private-random-session-secret>

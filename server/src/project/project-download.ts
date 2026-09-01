@@ -7,6 +7,7 @@ import { ErrorCode, HttpError } from "../common/index.js";
 const EXCLUDED_NAMES = new Set([
   "node_modules",
   ".git",
+  ".swifty",
   "dist",
   "build",
   ".DS_Store",

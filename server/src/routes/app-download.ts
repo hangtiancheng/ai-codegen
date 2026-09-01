@@ -16,11 +16,7 @@ export const createAppProjectArchive = async (
   input: AppDownloadInput,
 ) => {
   const app = await appService.requireOwnedApp(input.appId, input.userId);
-  const projectDir = buildCodeOutputDir(
-    projectRootDir ?? process.cwd(),
-    app.codegenType,
-    app.id.toString(),
-  );
+  const projectDir = buildCodeOutputDir(projectRootDir ?? process.cwd(), app.id.toString());
   return {
     archive: await createProjectZipStream(projectDir),
     filename: `app-${app.id.toString()}.zip`,

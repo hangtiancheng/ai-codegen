@@ -18,6 +18,7 @@ export {
   type AppPage,
 } from "./app-api";
 export { downloadAppCode } from "./app-download";
+export { fetchAppFileTree } from "./app-files";
 export {
   listAdminChatHistoryPage,
   listAppChatHistory,

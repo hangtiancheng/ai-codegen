@@ -11,7 +11,7 @@ export function GlobalFooter(): ReactNode {
           className="text-muted-foreground hover:text-primary no-underline transition-colors"
         >
           {"\u00A9 "}
-          {new Date().getFullYear()} AI Codegen. All rights reserved.
+          {new Date().getFullYear()} Swifty Codegen. All rights reserved.
         </a>
       </p>
     </footer>

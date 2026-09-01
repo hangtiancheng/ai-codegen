@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { formatDateTime } from "@/shared/lib";
-import { formatCodegenType, type AppVo } from "@/shared/schemas";
-import { Badge, UserInfo } from "@/shared/ui";
+import { type AppVo } from "@/shared/schemas";
+import { UserInfo } from "@/shared/ui";
 
 export type AppEditInfoPanelProps = {
   readonly app: AppVo;
@@ -23,9 +23,6 @@ export function AppEditInfoPanel({ app }: AppEditInfoPanelProps): ReactNode {
         </InfoTile>
         <InfoTile label="Created" value={formatDateTime(app.createTime)} />
         <InfoTile label="Updated" value={formatDateTime(app.updateTime)} />
-        <InfoTile label="Generation Type">
-          <Badge variant="blue">{formatCodegenType(app.codegenType)}</Badge>
-        </InfoTile>
       </div>
     </section>
   );

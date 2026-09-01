@@ -2,12 +2,15 @@ import {
   chatStreamBusinessErrorPayloadSchema,
   chatStreamEventNames,
   chatStreamMessagePayloadSchema,
+  chatStreamToolPayloadSchema,
   type ChatStreamBusinessErrorPayload,
   type ChatStreamMessagePayload,
+  type ChatStreamToolPayload,
 } from "@/shared/schemas";
 
 export type ParsedStreamEvent =
   | { kind: "message"; payload: ChatStreamMessagePayload }
+  | { kind: "tool"; payload: ChatStreamToolPayload }
   | { kind: "done" }
   | { kind: "business-error"; payload: ChatStreamBusinessErrorPayload }
   | { kind: "ignored" };
@@ -41,6 +44,15 @@ export function parseStreamEvent(raw: RawStreamEvent): ParsedStreamEvent {
       kind: "business-error",
       payload: { message: "Stream error" },
     };
+  }
+  if (eventName === chatStreamEventNames.tool) {
+    const parsed = chatStreamToolPayloadSchema.safeParse(
+      parseJsonSafely(raw.data),
+    );
+    if (parsed.success) {
+      return { kind: "tool", payload: parsed.data };
+    }
+    return { kind: "ignored" };
   }
   if (eventName === chatStreamEventNames.message) {
     const parsed = chatStreamMessagePayloadSchema.safeParse(

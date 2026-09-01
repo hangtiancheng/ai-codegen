@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
-import { Badge, Button, DataTable, type DataTableColumn } from "@/shared/ui";
-import { formatCodegenType, type AppId, type AppVo } from "@/shared/schemas";
+import { Button, DataTable, type DataTableColumn } from "@/shared/ui";
+import { type AppId, type AppVo } from "@/shared/schemas";
 import { formatTimestamp } from "../admin-shared/format-admin-value";
 
 export type AdminAppTableProps = {
@@ -62,11 +62,6 @@ function appColumns(
             No Cover
           </div>
         ),
-    },
-    {
-      key: "type",
-      header: "Type",
-      render: (app) => formatCodegenType(app.codegenType),
     },
     { key: "priority", header: "Priority", render: (app) => app.priority ?? 0 },
     {

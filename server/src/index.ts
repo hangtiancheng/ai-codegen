@@ -21,9 +21,7 @@ const server = serve(
     port: env.PORT,
   },
   (info) => {
-    console.log(
-      `Server listening on http://localhost:${String(info.port)}/${env.BASE_URL}`,
-    );
+    console.log(`Server listening on http://localhost:${String(info.port)}/${env.BASE_URL}`);
   },
 );
 

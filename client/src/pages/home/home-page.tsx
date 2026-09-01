@@ -79,7 +79,7 @@ export function HomePage(): ReactNode {
 
   return (
     <PageContainer
-      title="AI App Generator"
+      title="Swifty Codegen"
       description="Create website apps with one focused prompt."
     >
       <PromptComposer

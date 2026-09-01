@@ -5,15 +5,31 @@ import {
   useState,
   type RefObject,
 } from "react";
+import { getWebContainer } from "@/shared/webcontainer";
 import {
   visualEditorIncomingMessageSchema,
   type VisualEditorElementInfo,
 } from "@/shared/schemas";
 import editScriptSource from "./visual-edit-script.js?raw";
 
-const SCRIPT_ID = "visual-edit-script";
-const INJECT_DELAY_MS = 300;
-const IFRAME_LOAD_DELAY_MS = 500;
+const IFRAME_LOAD_DELAY_MS = 300;
+let previewScriptPromise: Promise<void> | undefined;
+
+const ensurePreviewScript = (): Promise<void> => {
+  previewScriptPromise ??= getWebContainer().then((container) =>
+    container.setPreviewScript(editScriptSource),
+  );
+  return previewScriptPromise;
+};
+
+const getOrigin = (url: string | undefined): string | undefined => {
+  if (url === undefined) return undefined;
+  try {
+    return new URL(url).origin;
+  } catch {
+    return undefined;
+  }
+};
 
 export type VisualEditorState = {
   readonly iframeRef: RefObject<HTMLIFrameElement | null>;
@@ -25,49 +41,23 @@ export type VisualEditorState = {
   readonly handleIframeLoad: () => void;
 };
 
-export function useVisualEditor(): VisualEditorState {
+export function useVisualEditor(previewUrl?: string): VisualEditorState {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [editMode, setEditMode] = useState(false);
   const [selectedElement, setSelectedElement] =
     useState<VisualEditorElementInfo>();
   const editModeRef = useRef(false);
+  const previewOrigin = getOrigin(previewUrl);
 
-  const postToIframe = useCallback((message: object): void => {
-    iframeRef.current?.contentWindow?.postMessage(message, "*");
-  }, []);
-
-  const injectEditScript = useCallback((): void => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    let retries = 0;
-    const maxRetries = 50;
-
-    const attempt = (): void => {
-      try {
-        const doc = iframe.contentDocument;
-        const win = iframe.contentWindow;
-        if (!doc || !win) {
-          if (retries++ < maxRetries) setTimeout(attempt, 100);
-          return;
-        }
-
-        if (doc.getElementById(SCRIPT_ID)) {
-          win.postMessage({ type: "TOGGLE_EDIT_MODE", editMode: true }, "*");
-          return;
-        }
-
-        const script = doc.createElement("script");
-        script.id = SCRIPT_ID;
-        script.textContent = editScriptSource;
-        doc.head.appendChild(script);
-      } catch {
-        if (retries++ < maxRetries) setTimeout(attempt, 100);
-      }
-    };
-
-    attempt();
-  }, []);
+  const postToIframe = useCallback(
+    (message: object): void => {
+      iframeRef.current?.contentWindow?.postMessage(
+        message,
+        previewOrigin ?? "*",
+      );
+    },
+    [previewOrigin],
+  );
 
   const clearSelection = useCallback(() => {
     setSelectedElement(undefined);
@@ -87,9 +77,7 @@ export function useVisualEditor(): VisualEditorState {
       const next = !current;
       editModeRef.current = next;
       if (next) {
-        setTimeout(() => {
-          injectEditScript();
-        }, INJECT_DELAY_MS);
+        postToIframe({ type: "TOGGLE_EDIT_MODE", editMode: true });
       } else {
         setSelectedElement(undefined);
         postToIframe({ type: "TOGGLE_EDIT_MODE", editMode: false });
@@ -97,20 +85,26 @@ export function useVisualEditor(): VisualEditorState {
       }
       return next;
     });
-  }, [injectEditScript, postToIframe]);
+  }, [postToIframe]);
 
   const handleIframeLoad = useCallback(() => {
-    if (editModeRef.current) {
-      setTimeout(() => {
-        injectEditScript();
-      }, IFRAME_LOAD_DELAY_MS);
-    } else {
-      postToIframe({ type: "CLEAR_ALL_EFFECTS" });
-    }
-  }, [injectEditScript, postToIframe]);
+    setTimeout(() => {
+      if (editModeRef.current) {
+        postToIframe({ type: "TOGGLE_EDIT_MODE", editMode: true });
+      } else {
+        postToIframe({ type: "CLEAR_ALL_EFFECTS" });
+      }
+    }, IFRAME_LOAD_DELAY_MS);
+  }, [postToIframe]);
+
+  useEffect(() => {
+    void ensurePreviewScript();
+  }, []);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent<unknown>): void => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      if (previewOrigin !== undefined && event.origin !== previewOrigin) return;
       const result = visualEditorIncomingMessageSchema.safeParse(event.data);
       if (!result.success) return;
       if (result.data.type === "ELEMENT_SELECTED") {
@@ -119,7 +113,7 @@ export function useVisualEditor(): VisualEditorState {
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
+  }, [previewOrigin]);
 
   return {
     iframeRef,

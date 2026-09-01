@@ -49,7 +49,7 @@ export function UserLoginPage(): ReactNode {
   return (
     <div className="flex min-h-[80vh] items-center justify-center px-4 py-10">
       <AuthCard
-        title="AI App Generator - Login"
+        title="Swifty Codegen - Login"
         description="Create complete apps without writing code"
         footer={
           <span>

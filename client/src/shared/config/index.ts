@@ -4,4 +4,4 @@ export {
   type EndpointPaths,
 } from "./endpoints";
 export { getRuntimeEnv, resetRuntimeEnvCache } from "./runtime-env";
-export { getApiBaseUrl, getStaticBaseUrl, getStaticPreviewUrl } from "./urls";
+export { getApiBaseUrl } from "./urls";

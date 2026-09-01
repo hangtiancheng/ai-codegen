@@ -1,8 +1,8 @@
-import { Bot, User } from "lucide-react";
+import { Bot, Check, Loader2, User, X } from "lucide-react";
 import { type ReactNode } from "react";
 import { cn } from "@/shared/lib";
 import { MarkdownRenderer } from "@/shared/ui";
-import { type ChatMessage } from "./chat-message";
+import { type ChatMessage, type MessagePart } from "./chat-message";
 
 export type MessageRowProps = {
   readonly index: number;
@@ -10,6 +10,58 @@ export type MessageRowProps = {
   readonly message: ChatMessage;
   readonly offset: number;
 };
+
+function ToolPartRow({
+  part,
+}: {
+  readonly part: Extract<MessagePart, { kind: "tool" }>;
+}): ReactNode {
+  const isError = part.status === "error";
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2 py-1 font-mono text-xs",
+        isError ? "text-destructive" : "text-muted-foreground",
+      )}
+    >
+      {part.status === "running" ? (
+        <Loader2 className="size-3 shrink-0 animate-spin" aria-hidden="true" />
+      ) : isError ? (
+        <X className="size-3 shrink-0" aria-hidden="true" />
+      ) : (
+        <Check className="size-3 shrink-0" aria-hidden="true" />
+      )}
+      <span className="font-medium">{part.name}</span>
+      {part.detail !== undefined && (
+        <span className="truncate opacity-70">{part.detail}</span>
+      )}
+    </div>
+  );
+}
+
+function MessageBody({
+  message,
+}: {
+  readonly message: ChatMessage;
+}): ReactNode {
+  if (message.loading === true && message.parts === undefined) {
+    return <p className="text-muted-foreground text-sm">Generating...</p>;
+  }
+  if (message.parts === undefined) {
+    return <MarkdownRenderer content={message.content} />;
+  }
+  return (
+    <>
+      {message.parts.map((part, index) =>
+        part.kind === "text" ? (
+          <MarkdownRenderer key={index} content={part.text} />
+        ) : (
+          <ToolPartRow key={index} part={part} />
+        ),
+      )}
+    </>
+  );
+}
 
 export function MessageRow({
   index,
@@ -53,11 +105,7 @@ export function MessageRow({
               : "bg-background rounded-tl-sm",
           )}
         >
-          {message.loading ? (
-            <p className="text-muted-foreground text-sm">Generating...</p>
-          ) : (
-            <MarkdownRenderer content={message.content} />
-          )}
+          <MessageBody message={message} />
         </div>
       </div>
     </article>

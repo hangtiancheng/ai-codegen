@@ -8,7 +8,7 @@ import type { AppHonoEnv } from "./hono-env.js";
 import type { SessionPayload } from "./session.schema.js";
 import type { SessionStore } from "./session-store.js";
 
-export const SESSION_COOKIE_NAME = "ai_codegen_session";
+export const SESSION_COOKIE_NAME = "swifty_codegen_session";
 
 const cookieOptions = () => ({
   httpOnly: true,

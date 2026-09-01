@@ -1,7 +1,7 @@
 import { useForm } from "@tanstack/react-form";
 import { type ReactNode } from "react";
 import { getZodFieldError } from "@/shared/lib";
-import { formatCodegenType, type AppVo } from "@/shared/schemas";
+import { type AppVo } from "@/shared/schemas";
 import { Button, TextArea, TextField } from "@/shared/ui";
 import {
   appCoverInputSchema,
@@ -100,11 +100,6 @@ export function AppEditForm({
         </>
       ) : null}
       <TextArea label="Initial Prompt" value={app.initPrompt} disabled />
-      <TextField
-        label="Generation Type"
-        value={formatCodegenType(app.codegenType)}
-        disabled
-      />
       <div className="flex flex-wrap gap-3 pt-2">
         <Button type="submit" disabled={submitting} isLoading={submitting}>
           Save Changes

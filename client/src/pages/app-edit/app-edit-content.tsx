@@ -3,7 +3,6 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { selectIsAdmin, useUserStore } from "@/shared/auth";
 import { downloadAppCode } from "@/shared/api";
-import { getStaticPreviewUrl } from "@/shared/config";
 import { useAppById, useUpdateApp, useUpdateAppByAdmin } from "@/shared/query";
 import { type AppId } from "@/shared/schemas";
 import { EmptyState, LoadingState, PageContainer } from "@/shared/ui";
@@ -34,13 +33,10 @@ export function AppEditContent({ appId }: AppEditContentProps): ReactNode {
   return (
     <PageContainer
       title="Edit App"
-      description="Update metadata, preview, and download generated code."
+      description="Update metadata and download generated source code."
     >
       <AppEditToolbar
         downloading={downloading}
-        onPreview={() =>
-          window.open(getStaticPreviewUrl(app.codegenType, app.id), "_blank")
-        }
         onDownload={() => {
           setDownloading(true);
           void downloadAppCode(app.id)

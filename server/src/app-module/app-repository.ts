@@ -1,10 +1,8 @@
 import type { PrismaDatabaseClient } from "../database/index.js";
-import type { CodegenType } from "../generated/prisma/enums.js";
 import type { SortableAppField } from "./app-sorting.js";
 
 type CreateAppInput = Readonly<{
   appName: string;
-  codegenType: CodegenType;
   initPrompt: string;
   userId: bigint;
 }>;
@@ -12,13 +10,11 @@ type CreateAppInput = Readonly<{
 type UpdateAppInput = Readonly<{
   appCover?: string;
   appName?: string;
-  codegenType?: CodegenType;
   priority?: number;
 }>;
 
 export type AppListFilter = Readonly<{
   appName?: string;
-  codegenType?: CodegenType;
   id?: bigint;
   initPrompt?: string;
   priority?: number;
@@ -34,7 +30,6 @@ export type ListAppParams = Readonly<{
 
 const buildCreateData = (data: CreateAppInput) => ({
   appName: data.appName,
-  codegenType: data.codegenType,
   initPrompt: data.initPrompt,
   userId: data.userId,
 });
@@ -42,14 +37,12 @@ const buildCreateData = (data: CreateAppInput) => ({
 const buildUpdateData = (data: UpdateAppInput) => ({
   ...(data.appCover !== undefined && { appCover: data.appCover }),
   ...(data.appName !== undefined && { appName: data.appName }),
-  ...(data.codegenType !== undefined && { codegenType: data.codegenType }),
   ...(data.priority !== undefined && { priority: data.priority }),
 });
 
 const buildListWhere = (filter: AppListFilter) => ({
   isDelete: false,
   ...(filter.id !== undefined && { id: filter.id }),
-  ...(filter.codegenType !== undefined && { codegenType: filter.codegenType }),
   ...(filter.priority !== undefined && { priority: filter.priority }),
   ...(filter.userId !== undefined && { userId: filter.userId }),
   ...(filter.appName !== undefined && { appName: { contains: filter.appName } }),

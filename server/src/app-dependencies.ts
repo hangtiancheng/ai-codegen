@@ -1,49 +1,30 @@
 import { Redis } from "ioredis";
-import {
-  buildAiModelRegistryConfigFromEnv,
-  createAiModelRegistry,
-} from "./ai/index.js";
 import type { AppDependencies } from "./app.js";
 import {
   createDatabaseHealthCheck,
   createModelProviderHealthCheck,
   createRedisHealthCheck,
 } from "./app-health-checks.js";
-import {
-  type AppRepository,
-  createAppRepository,
-  createAppService,
-  createDefaultCodegenRouter,
-} from "./app-module/index.js";
+import { type AppRepository, createAppRepository, createAppService } from "./app-module/index.js";
 import { createDefaultShutdown } from "./app-shutdown.js";
 import { createConfiguredStorage } from "./app-storage.js";
+import { createChatHistoryRepository, createChatHistoryService } from "./chat-history/index.js";
 import {
-  createChatHistoryRepository,
-  createChatHistoryService,
-} from "./chat-history/index.js";
+  buildProviderConfig,
+  createCodegenService,
+  loadSystemPromptTemplate,
+} from "./codegen-agent/index.js";
 import { env } from "./config/index.js";
 import { createPrismaClient } from "./database/index.js";
 import { createStorageHealthCheck } from "./deployment/index.js";
-import {
-  createHealthService,
-  createMetricsService,
-} from "./observability/index.js";
+import { createHealthService, createMetricsService } from "./observability/index.js";
 import {
   createInMemoryRateLimitStore,
   createRateLimiter,
   createRedisRateLimitStore,
 } from "./rate-limit/index.js";
-import {
-  createInMemorySessionStore,
-  createRedisSessionStore,
-} from "./session/index.js";
+import { createInMemorySessionStore, createRedisSessionStore } from "./session/index.js";
 import { createUserRepository, createUserService } from "./user/index.js";
-import {
-  createCodegenWorkflow,
-  createLangChainCodeGenerator,
-  createLangChainQualityChecker,
-  createWorkflowChatWriter,
-} from "./workflow/index.js";
 
 const createRedisClient = () =>
   env.REDIS_URL === undefined
@@ -52,18 +33,13 @@ const createRedisClient = () =>
 
 const createDefaultHealthChecks = (
   db: ReturnType<typeof createPrismaClient>,
-  aiRegistry: ReturnType<typeof createAiModelRegistry>,
+  providerConfig: ReturnType<typeof buildProviderConfig>,
   redisClient: Redis | undefined,
   storageHealthProbe: ReturnType<typeof createConfiguredStorage>["healthProbe"],
 ) => [
   createDatabaseHealthCheck(db),
   ...(env.MODEL_PROVIDER_HEALTH_CHECK_ENABLED
-    ? [
-        createModelProviderHealthCheck(
-          aiRegistry,
-          env.MODEL_PROVIDER_HEALTH_CHECK_TIMEOUT_MS,
-        ),
-      ]
+    ? [createModelProviderHealthCheck(providerConfig, env.MODEL_PROVIDER_HEALTH_CHECK_TIMEOUT_MS)]
     : []),
   createRedisHealthCheck(redisClient),
   createStorageHealthCheck(storageHealthProbe),
@@ -74,12 +50,11 @@ export const createDefaultDependencies = (): AppDependencies => {
   const redisClient = createRedisClient();
   const metricsService = createMetricsService();
   const appRepository: AppRepository = createAppRepository(db);
-  const chatHistoryService = createChatHistoryService(
-    createChatHistoryRepository(db),
-  );
-  const aiRegistry = createAiModelRegistry(
-    buildAiModelRegistryConfigFromEnv(env),
-  );
+  const chatHistoryService = createChatHistoryService(createChatHistoryRepository(db));
+  const providerConfig = buildProviderConfig(env);
+  // Read at startup so a missing prompt file fails the boot instead of the
+  // first generation request.
+  const systemPromptTemplate = loadSystemPromptTemplate();
   const { healthProbe: storageHealthProbe } = createConfiguredStorage();
   const rateLimitStore =
     redisClient === undefined
@@ -92,21 +67,18 @@ export const createDefaultDependencies = (): AppDependencies => {
       namespace: "ai-generation",
       windowSeconds: env.LLM_RATE_LIMIT_WINDOW_SECONDS,
     }),
-    appService: createAppService(appRepository, createDefaultCodegenRouter()),
+    appService: createAppService(appRepository),
     chatHistoryService,
-    codegenWorkflow: createCodegenWorkflow({
-      chatWriter: createWorkflowChatWriter(chatHistoryService),
-      codeGenerator: createLangChainCodeGenerator(aiRegistry),
-      qualityChecker: createLangChainQualityChecker(aiRegistry),
+    codegenService: createCodegenService({
+      chatHistoryService,
+      maxIterations: env.AI_MAX_ITERATIONS,
+      metricsService,
+      providerConfig,
+      systemPromptTemplate,
     }),
     db,
     healthService: createHealthService(
-      createDefaultHealthChecks(
-        db,
-        aiRegistry,
-        redisClient,
-        storageHealthProbe,
-      ),
+      createDefaultHealthChecks(db, providerConfig, redisClient, storageHealthProbe),
     ),
     metricsService,
     sessionStore:

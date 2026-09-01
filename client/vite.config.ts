@@ -6,8 +6,15 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath } from "node:url";
 
+const crossOriginIsolationHeaders = {
+  "Cross-Origin-Embedder-Policy": "credentialless",
+  "Cross-Origin-Opener-Policy": "same-origin",
+};
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: { headers: crossOriginIsolationHeaders },
+  preview: { headers: crossOriginIsolationHeaders },
   build: {
     rollupOptions: {
       output: {

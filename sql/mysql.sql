@@ -1,10 +1,10 @@
 -- docker exec -i mysql mysql -uroot -ppass < ./sql/main.sql
 
-DROP DATABASE IF EXISTS ai_codegen;
+DROP DATABASE IF EXISTS swifty_codegen;
 
-CREATE DATABASE IF NOT EXISTS ai_codegen;
+CREATE DATABASE IF NOT EXISTS swifty_codegen;
 
-USE ai_codegen;
+USE swifty_codegen;
 
 CREATE TABLE IF NOT EXISTS "users"
 (
@@ -29,16 +29,12 @@ CREATE TABLE IF NOT EXISTS "apps"
     app_name     VARCHAR(256)                       NULL     COMMENT 'app name',
     app_cover    VARCHAR(512)                       NULL     COMMENT 'app cover',
     init_prompt  TEXT                               NULL     COMMENT 'init prompt',
-    codegen_type VARCHAR(64)                        NULL     COMMENT 'codegen type',
-    deploy_key   VARCHAR(64)                        NULL     COMMENT 'deploy key',
-    deploy_time  VARCHAR(64)                        NULL     COMMENT 'deploy time',
     priority     INT      DEFAULT 0                 NOT NULL COMMENT 'priority',
     user_id      BIGINT                             NOT NULL COMMENT 'creator user id',
     edit_time    DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT 'edit time',
     create_time  DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT 'create time',
     update_time  DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT 'update time',
     is_delete    TINYINT  DEFAULT 0                 NOT NULL COMMENT 'is delete, default 0, 1 as deleted',
-    UNIQUE KEY uk_deploy_key (deploy_key),
     INDEX idx_app_name (app_name),
     INDEX idx_user_id (user_id)
 ) COMMENT 'apps' COLLATE = utf8mb4_unicode_ci;

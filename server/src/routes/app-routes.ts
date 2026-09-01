@@ -14,20 +14,21 @@ import {
   appPageQuerySchema,
   appUpdateSchema,
 } from "../app-module/index.js";
+import type { CodegenService } from "../codegen-agent/index.js";
 import { createSuccessResponse, ErrorCode, HttpError } from "../common/index.js";
 import type { MetricsService } from "../observability/index.js";
 import type { RateLimiter } from "../rate-limit/index.js";
 import { type AppHonoEnv, requireLogin } from "../session/index.js";
 import type { SessionUser } from "../session/session.schema.js";
-import type { CodegenWorkflow } from "../workflow/index.js";
 import { createAppAdminRoutes } from "./app-admin-routes.js";
 import { handleAppCodegen } from "./app-codegen.js";
 import { createAppProjectArchive } from "./app-download.js";
+import { loadAppFileTree } from "./app-files.js";
 
 export type AppRoutesDeps = Readonly<{
   aiGenerationRateLimiter: RateLimiter;
   appService: AppService;
-  codegenWorkflow: CodegenWorkflow;
+  codegenService: CodegenService;
   metricsService: MetricsService;
   projectRootDir?: string;
 }>;
@@ -42,7 +43,7 @@ const requireUserId = (user: SessionUser | undefined): bigint => {
 export const createAppRoutes = ({
   aiGenerationRateLimiter,
   appService,
-  codegenWorkflow,
+  codegenService,
   metricsService,
   projectRootDir,
 }: AppRoutesDeps) =>
@@ -52,11 +53,12 @@ export const createAppRoutes = ({
         {
           aiGenerationRateLimiter,
           appService,
-          codegenWorkflow,
+          codegenService,
           metricsService,
         },
         c.get("user"),
         c.req.query(),
+        c.req.raw.signal,
       ),
     )
     .post("/add", requireLogin, zValidator("json", appAddSchema), async (c) => {
@@ -76,6 +78,17 @@ export const createAppRoutes = ({
       const { id } = c.req.valid("json");
       const ok = await appService.deleteApp(id, userId);
       return c.json(createSuccessResponse(ok));
+    })
+    .get("/files/:appId", requireLogin, zValidator("param", appDownloadParamSchema), async (c) => {
+      const { appId }: AppDownloadParam = c.req.valid("param");
+      const tree = await loadAppFileTree(
+        {
+          appService,
+          ...(projectRootDir !== undefined && { projectRootDir }),
+        },
+        appId,
+      );
+      return c.json(createSuccessResponse(tree));
     })
     .get(
       "/download/:appId",

@@ -50,10 +50,6 @@ export default defineConfig([
       "@typescript-eslint/no-unsafe-call": "error",
       "@typescript-eslint/no-unsafe-member-access": "error",
       "@typescript-eslint/no-unsafe-return": "error",
-      "max-lines": [
-        "error",
-        { max: 150, skipBlankLines: true, skipComments: true },
-      ],
       "react-refresh/only-export-components": "error",
       "unicorn/filename-case": ["error", { case: "kebabCase" }],
     },
@@ -61,7 +57,6 @@ export default defineConfig([
   {
     files: ["**/*.test.{ts,tsx}"],
     rules: {
-      "max-lines": "off",
       "react-refresh/only-export-components": "off",
     },
   },

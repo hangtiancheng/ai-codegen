@@ -4,10 +4,13 @@ import { runChatStream } from "@/shared/api";
 import { reportRuntimeIssue } from "@/shared/observability";
 import { type AppVo, type ChatHistory } from "@/shared/schemas";
 import {
+  appendTextPart,
+  applyToolPart,
   chatHistoryToMessages,
   createLoadingAiMessage,
   createUserMessage,
   type ChatMessage,
+  type MessagePart,
 } from "./chat-message";
 import { buildChatStreamUrl } from "./chat-stream-url";
 import { appendSelectedElementContext } from "./selected-element-context";
@@ -54,13 +57,21 @@ export function useChatSession(
       const controller = new AbortController();
       abortRef.current = controller;
       let content = "";
+      let parts: ReadonlyArray<MessagePart> = [];
       void runChatStream(
         { url: buildChatStreamUrl(app.id, prompt), signal: controller.signal },
         {
           onChunk: (chunk) => {
             content += chunk;
+            parts = appendTextPart(parts, chunk);
             setSessionMessages((current) =>
-              replaceMessage(current, aiMessage.id, content, false),
+              replaceMessage(current, aiMessage.id, { content, parts }),
+            );
+          },
+          onTool: (tool) => {
+            parts = applyToolPart(parts, tool);
+            setSessionMessages((current) =>
+              replaceMessage(current, aiMessage.id, { content, parts }),
             );
           },
           onDone: () => {
@@ -78,8 +89,12 @@ export function useChatSession(
               });
               toast.error(error.message);
             }
+            parts = appendTextPart(parts, `\n\n${error.message}`);
             setSessionMessages((current) =>
-              replaceMessage(current, aiMessage.id, error.message, false),
+              replaceMessage(current, aiMessage.id, {
+                content: content + `\n\n${error.message}`,
+                parts,
+              }),
             );
           },
         },
@@ -128,10 +143,16 @@ function cleanupVisualEditor(editor: VisualEditorState): void {
 function replaceMessage(
   messages: ReadonlyArray<ChatMessage>,
   id: string,
-  content: string,
-  loading: boolean,
+  patch: { content: string; parts: ReadonlyArray<MessagePart> },
 ): ReadonlyArray<ChatMessage> {
   return messages.map((message) =>
-    message.id === id ? { ...message, content, loading } : message,
+    message.id === id
+      ? {
+          ...message,
+          content: patch.content,
+          parts: patch.parts,
+          loading: false,
+        }
+      : message,
   );
 }

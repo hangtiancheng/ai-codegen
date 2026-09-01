@@ -1,27 +1,34 @@
 import { Edit3, Eye, Loader2, RefreshCw } from "lucide-react";
 import { type RefObject, type ReactNode } from "react";
 import { Button } from "@/shared/ui";
+import { getPreviewStatusMessage, type PreviewStatus } from "./preview-status";
 
 export type PreviewPanelProps = {
-  readonly previewUrl: string | undefined;
-  readonly editMode: boolean;
   readonly canEdit: boolean;
+  readonly editMode: boolean;
+  readonly error: string | undefined;
   readonly generating: boolean;
   readonly iframeRef: RefObject<HTMLIFrameElement | null>;
+  readonly logs: string;
   readonly onIframeLoad: () => void;
   readonly onRefresh: () => void;
   readonly onToggleEditMode: () => void;
+  readonly previewUrl: string | undefined;
+  readonly status: PreviewStatus;
 };
 
 export function PreviewPanel({
-  previewUrl,
-  editMode,
   canEdit,
+  editMode,
+  error,
   generating,
   iframeRef,
+  logs,
   onIframeLoad,
   onRefresh,
   onToggleEditMode,
+  previewUrl,
+  status,
 }: PreviewPanelProps): ReactNode {
   return (
     <section className="border-border bg-card flex min-h-0 flex-1 flex-col rounded-2xl border shadow-sm">
@@ -29,19 +36,22 @@ export function PreviewPanel({
         <div>
           <h2 className="text-sm font-semibold">Preview</h2>
           <p className="text-muted-foreground text-xs">
-            {previewUrl
-              ? "Generated output is ready."
-              : generating
-                ? "Generation is in progress."
-                : "Generate once to preview."}
+            {generating && status === "idle"
+              ? "Generation is in progress."
+              : getPreviewStatusMessage(status)}
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onRefresh}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={previewUrl === undefined}
+            onClick={onRefresh}
+          >
             <RefreshCw className="size-4" aria-hidden="true" />
             Refresh
           </Button>
-          {canEdit && previewUrl ? (
+          {canEdit && previewUrl !== undefined ? (
             <Button
               variant={editMode ? "primary" : "secondary"}
               size="sm"
@@ -58,17 +68,17 @@ export function PreviewPanel({
         </div>
       </header>
       <div className="bg-secondary/40 min-h-96 flex-1">
-        {previewUrl ? (
+        {previewUrl !== undefined ? (
           <iframe
             ref={iframeRef}
             title="Generated app preview"
             src={previewUrl}
             onLoad={onIframeLoad}
             className="h-full min-h-96 w-full bg-white"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
           />
         ) : (
-          <PreviewPlaceholder generating={generating} />
+          <PreviewPlaceholder error={error} logs={logs} status={status} />
         )}
       </div>
     </section>
@@ -76,15 +86,33 @@ export function PreviewPanel({
 }
 
 function PreviewPlaceholder({
-  generating,
+  error,
+  logs,
+  status,
 }: {
-  readonly generating: boolean;
+  readonly error: string | undefined;
+  readonly logs: string;
+  readonly status: PreviewStatus;
 }): ReactNode {
-  if (generating) {
+  if (status === "failed") {
+    return (
+      <div className="flex h-full min-h-96 flex-col justify-center gap-3 p-6 text-sm">
+        <p className="text-destructive font-medium">
+          {error ?? "Preview failed to start."}
+        </p>
+        {logs.length > 0 ? (
+          <pre className="bg-background max-h-56 overflow-auto rounded-lg border p-3 text-xs whitespace-pre-wrap">
+            {logs}
+          </pre>
+        ) : null}
+      </div>
+    );
+  }
+  if (status !== "idle") {
     return (
       <div className="text-muted-foreground flex h-full min-h-96 flex-col items-center justify-center gap-3 text-sm">
         <Loader2 className="size-8 animate-spin" aria-hidden="true" />
-        Generating website...
+        {getPreviewStatusMessage(status)}
       </div>
     );
   }

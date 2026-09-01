@@ -1,4 +1,4 @@
-# AI Codegen
+# Swifty Codegen
 
 ```bash
 # Streaming Chat Model (Vanilla HTML or multiple files)

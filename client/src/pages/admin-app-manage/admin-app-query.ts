@@ -3,7 +3,6 @@ import {
   appQueryRequestSchema,
   userIdSchema,
   type AppQueryRequest,
-  type CodegenType,
 } from "@/shared/schemas";
 import {
   optionalPositiveInteger,
@@ -16,14 +15,12 @@ export type AdminAppFilterValues = {
   readonly id: string;
   readonly appName: string;
   readonly userId: string;
-  readonly codegenType: CodegenType | "";
 };
 
 export const initialAdminAppFilters: AdminAppFilterValues = {
   id: "",
   appName: "",
   userId: "",
-  codegenType: "",
 };
 
 export function buildAdminAppQuery(
@@ -40,6 +37,5 @@ export function buildAdminAppQuery(
     id: id === undefined ? undefined : appIdSchema.parse(id),
     appName: optionalTrimmed(filters.appName),
     userId: userId === undefined ? undefined : userIdSchema.parse(userId),
-    codegenType: filters.codegenType === "" ? undefined : filters.codegenType,
   });
 }

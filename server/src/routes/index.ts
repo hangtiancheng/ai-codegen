@@ -11,9 +11,5 @@ export type {
   ManagementRoutesDeps,
 } from "./management-routes.js";
 export { createManagementRoutes } from "./management-routes.js";
-export type { StaticRoutes, StaticRoutesDeps } from "./static-routes.js";
-export { createStaticRoutes } from "./static-routes.js";
 export type { UserRoutes, UserRoutesDeps } from "./user-routes.js";
 export { createUserRoutes } from "./user-routes.js";
-export type { WorkflowDemoRoutes } from "./workflow-demo-routes.js";
-export { workflowDemoRoutes } from "./workflow-demo-routes.js";

@@ -1,6 +1,5 @@
-import { HumanMessage } from "@langchain/core/messages";
+import { ConversationManager, createClient, type ProviderConfig } from "@swifty.js/swifty";
 import type { Redis } from "ioredis";
-import type { AiModelRegistry } from "./ai/index.js";
 import type { PrismaDatabaseClient } from "./database/index.js";
 import type { HealthCheck } from "./observability/index.js";
 
@@ -46,15 +45,23 @@ const withTimeout = async (operation: Promise<unknown>, timeoutMs: number): Prom
   }
 };
 
+const probeModelProvider = async (providerConfig: ProviderConfig): Promise<void> => {
+  const client = await createClient(providerConfig, "You are a health probe. Reply with ok.");
+  const conversation = new ConversationManager();
+  conversation.addUserMessage("Reply with ok.");
+  for await (const event of client.stream(conversation, [])) {
+    if (event.type === "stream_end") return;
+  }
+};
+
 export const createModelProviderHealthCheck = (
-  registry: AiModelRegistry,
+  providerConfig: ProviderConfig,
   timeoutMs: number,
 ): HealthCheck => ({
   name: "modelProvider",
   probe: async () => {
     try {
-      const model = registry.createModel("route");
-      await withTimeout(model.invoke([new HumanMessage("Reply with ok.")]), timeoutMs);
+      await withTimeout(probeModelProvider(providerConfig), timeoutMs);
       return "up";
     } catch {
       return "down";

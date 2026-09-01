@@ -167,13 +167,6 @@ export type BoolWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedBoolFilter<$PrismaModel>
 }
 
-export type EnumCodegenTypeFilter<$PrismaModel = never> = {
-  equals?: $Enums.CodegenType | Prisma.EnumCodegenTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.CodegenType[] | Prisma.ListEnumCodegenTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.CodegenType[] | Prisma.ListEnumCodegenTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumCodegenTypeFilter<$PrismaModel> | $Enums.CodegenType
-}
-
 export type IntFilter<$PrismaModel = never> = {
   equals?: number | Prisma.IntFieldRefInput<$PrismaModel>
   in?: number[] | Prisma.ListIntFieldRefInput<$PrismaModel>
@@ -183,16 +176,6 @@ export type IntFilter<$PrismaModel = never> = {
   gt?: number | Prisma.IntFieldRefInput<$PrismaModel>
   gte?: number | Prisma.IntFieldRefInput<$PrismaModel>
   not?: Prisma.NestedIntFilter<$PrismaModel> | number
-}
-
-export type EnumCodegenTypeWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.CodegenType | Prisma.EnumCodegenTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.CodegenType[] | Prisma.ListEnumCodegenTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.CodegenType[] | Prisma.ListEnumCodegenTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumCodegenTypeWithAggregatesFilter<$PrismaModel> | $Enums.CodegenType
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumCodegenTypeFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumCodegenTypeFilter<$PrismaModel>
 }
 
 export type IntWithAggregatesFilter<$PrismaModel = never> = {
@@ -403,23 +386,6 @@ export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedBoolFilter<$PrismaModel>
   _max?: Prisma.NestedBoolFilter<$PrismaModel>
-}
-
-export type NestedEnumCodegenTypeFilter<$PrismaModel = never> = {
-  equals?: $Enums.CodegenType | Prisma.EnumCodegenTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.CodegenType[] | Prisma.ListEnumCodegenTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.CodegenType[] | Prisma.ListEnumCodegenTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumCodegenTypeFilter<$PrismaModel> | $Enums.CodegenType
-}
-
-export type NestedEnumCodegenTypeWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.CodegenType | Prisma.EnumCodegenTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.CodegenType[] | Prisma.ListEnumCodegenTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.CodegenType[] | Prisma.ListEnumCodegenTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumCodegenTypeWithAggregatesFilter<$PrismaModel> | $Enums.CodegenType
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumCodegenTypeFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumCodegenTypeFilter<$PrismaModel>
 }
 
 export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {

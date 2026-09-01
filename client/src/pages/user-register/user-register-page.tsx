@@ -38,7 +38,7 @@ export function UserRegisterPage(): ReactNode {
   return (
     <div className="flex min-h-[80vh] items-center justify-center px-4 py-10">
       <AuthCard
-        title="AI App Generator - Register"
+        title="Swifty Codegen - Register"
         description="Create complete apps without writing code"
         footer={
           <span>
