@@ -1,10 +1,10 @@
 /// <reference types="vite/client" />
-// /// <reference types="vitest/globals" />
 
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath } from "node:url";
+import { sentryPlugin7 } from "@swifty.js/sentry/vite";
 
 const crossOriginIsolationHeaders = {
   "Cross-Origin-Embedder-Policy": "credentialless",
@@ -12,7 +12,7 @@ const crossOriginIsolationHeaders = {
 };
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), sentryPlugin7({ dsn: "/sentry" })],
   server: { headers: crossOriginIsolationHeaders },
   preview: { headers: crossOriginIsolationHeaders },
   build: {
