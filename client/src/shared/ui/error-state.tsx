@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
-import { cn } from "@/shared/lib";
+import { cn } from "cn";
 
 export type ErrorStateProps = {
   readonly title?: string;

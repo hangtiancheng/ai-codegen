@@ -1,0 +1,30 @@
+{
+  "projectName": "swifty-codegen",
+  "mode": "file-router",
+  "typescript": true,
+  "packageManager": "pnpm",
+  "includeExamples": true,
+  "tailwind": true,
+  "projectPreset": "default",
+  "addOnOptions": {
+    "prisma": {
+      "database": "sqlite"
+    }
+  },
+  "git": true,
+  "install": true,
+  "intent": true,
+  "routerOnly": false,
+  "version": 1,
+  "framework": "react",
+  "chosenAddOns": [
+    "prisma",
+    "store",
+    "t3env",
+    "table",
+    "shadcn",
+    "form",
+    "db",
+    "tanstack-query"
+  ]
+}

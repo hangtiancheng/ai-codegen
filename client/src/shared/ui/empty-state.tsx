@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { Sparkles } from "lucide-react";
-import { cn } from "@/shared/lib";
+import { cn } from "cn";
 
 export type EmptyStateProps = {
   readonly title: string;

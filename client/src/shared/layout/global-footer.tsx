@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 
 export function GlobalFooter(): ReactNode {
   return (
-    <footer className="mt-10 py-5 text-center">
+    <footer className="py-5 text-center">
       <p className="text-muted-foreground m-0 text-sm">
         <a
           href="https://github.com/hangtiancheng/swifty-codegen"
@@ -10,7 +10,6 @@ export function GlobalFooter(): ReactNode {
           rel="noopener noreferrer"
           className="text-muted-foreground hover:text-primary no-underline transition-colors"
         >
-          {"\u00A9 "}
           {new Date().getFullYear()} Swifty Codegen. All rights reserved.
         </a>
       </p>

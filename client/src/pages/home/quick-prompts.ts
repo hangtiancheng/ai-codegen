@@ -12,7 +12,7 @@ export const quickPrompts: ReadonlyArray<QuickPrompt> = [
   {
     label: "Online Store",
     prompt:
-      "Build an online store with Vite, Vue 3, TypeScript (strict mode), and Tailwind CSS using the Composition API and single-file components. Use lucide-vue-next for all icons, and you may use daisyUI as the component library on top of Tailwind. Include a hero banner, a product grid with hover cards, category and price filters, a search box, a slide-in cart drawer with quantity controls and totals, and a checkout summary with a promo code field. Manage cart state with a composable or Pinia, keep prices and inventory in a typed mock data module, fully type all components and stores, and make the layout responsive with clear empty and loading states.",
+      "Build an online store with Vite, Vue 3, TypeScript (strict mode), and Tailwind CSS using the Composition API and single-file components. Use @lucide/vue for all icons, and you may use daisyUI as the component library on top of Tailwind. Include a hero banner, a product grid with hover cards, category and price filters, a search box, a slide-in cart drawer with quantity controls and totals, and a checkout summary with a promo code field. Manage cart state with a composable or Pinia, keep prices and inventory in a typed mock data module, fully type all components and stores, and make the layout responsive with clear empty and loading states.",
   },
   {
     label: "Analytics Dashboard",
@@ -22,6 +22,6 @@ export const quickPrompts: ReadonlyArray<QuickPrompt> = [
   {
     label: "Portfolio Website",
     prompt:
-      "Build a portfolio website for a product designer with Vite, TypeScript (strict mode), and Tailwind CSS, and pick the frontend framework that best fits the design. Use the matching lucide icon package for the chosen framework (lucide-react, lucide-vue-next, or lucide), and you may use daisyUI as the component library on top of Tailwind. Include a striking hero with name and role, a case-study grid with project covers and outcomes, a case-study detail view with problem, process, and result sections, an about section with skills and timeline, and a contact form with client-side validation. Fully type all components and data models, and focus on strong visual hierarchy, generous whitespace, subtle motion, and full responsiveness from mobile to desktop.",
+      "Build a portfolio website for a product designer with Vite, TypeScript (strict mode), and Tailwind CSS, and pick the frontend framework that best fits the design. Use the matching lucide icon package for the chosen framework (lucide-react, @lucide/vue, or lucide), and you may use daisyUI as the component library on top of Tailwind. Include a striking hero with name and role, a case-study grid with project covers and outcomes, a case-study detail view with problem, process, and result sections, an about section with skills and timeline, and a contact form with client-side validation. Fully type all components and data models, and focus on strong visual hierarchy, generous whitespace, subtle motion, and full responsiveness from mobile to desktop.",
   },
 ];

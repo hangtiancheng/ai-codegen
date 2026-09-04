@@ -1,6 +1,6 @@
 import { SlidersHorizontal } from "lucide-react";
 import { type ReactNode } from "react";
-import { cn } from "@/shared/lib";
+import { cn } from "cn";
 import type {
   AgentConnectionState,
   AgentRuntimeStatus,

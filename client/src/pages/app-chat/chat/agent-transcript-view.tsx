@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { cn } from "@/shared/lib";
+import { cn } from "cn";
 import { MarkdownRenderer } from "@/shared/ui";
 import type {
   AgentRuntimeStatus,

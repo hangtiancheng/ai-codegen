@@ -1,7 +1,7 @@
 import { AlertTriangle, X } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { cn } from "@/shared/lib";
+import { cn } from "cn";
 import type { AppId, VisualEditorElementInfo } from "@/shared/schemas";
 import { useWorkspace } from "./workspace";
 import { AgentComposer } from "./chat/agent-composer";

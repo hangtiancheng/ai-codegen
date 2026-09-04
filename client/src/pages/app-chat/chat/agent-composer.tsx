@@ -6,7 +6,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
-import { cn } from "@/shared/lib";
+import { cn } from "cn";
 import { Button, TextArea } from "@/shared/ui";
 import type { AgentCommandCandidate } from "../use-agent-transcript";
 

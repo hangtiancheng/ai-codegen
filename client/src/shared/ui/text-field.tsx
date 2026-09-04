@@ -4,7 +4,7 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
 } from "react";
-import { cn } from "@/shared/lib";
+import { cn } from "cn";
 
 export type TextFieldProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,

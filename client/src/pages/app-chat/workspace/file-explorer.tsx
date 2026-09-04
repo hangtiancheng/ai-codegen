@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { cn } from "@/shared/lib";
+import { cn } from "cn";
 import { Button } from "@/shared/ui";
 import { parentPath } from "./workspace-paths";
 import { useWorkspace } from "./workspace-context";

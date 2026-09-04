@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from "react";
-import { cn } from "@/shared/lib";
+import { cn } from "cn";
 import { renderSafeMarkdown } from "./render-safe-markdown";
 
 export type MarkdownRendererProps = {

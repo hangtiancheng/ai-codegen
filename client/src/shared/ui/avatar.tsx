@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { cn } from "@/shared/lib";
+import { cn } from "cn";
 
 type AvatarSize = "sm" | "md" | "lg";
 

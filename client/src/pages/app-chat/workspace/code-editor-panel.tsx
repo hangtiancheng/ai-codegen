@@ -7,7 +7,7 @@ import {
   type RefObject,
 } from "react";
 import { toast } from "sonner";
-import { cn } from "@/shared/lib";
+import { cn } from "cn";
 import { Button } from "@/shared/ui";
 import { loadMonaco, type MonacoModule } from "./monaco-loader";
 import { baseName, languageForPath } from "./workspace-paths";

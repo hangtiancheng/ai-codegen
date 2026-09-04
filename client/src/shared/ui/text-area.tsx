@@ -4,7 +4,7 @@ import {
   type TextareaHTMLAttributes,
   type ReactNode,
 } from "react";
-import { cn } from "@/shared/lib";
+import { cn } from "cn";
 
 export type TextAreaProps = Omit<
   TextareaHTMLAttributes<HTMLTextAreaElement>,

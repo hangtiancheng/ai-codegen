@@ -1,6 +1,6 @@
 import { Code2, Eye } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { cn } from "@/shared/lib";
+import { cn } from "cn";
 import { Button } from "@/shared/ui";
 import type { PreviewRuntimeError } from "../build-error-context";
 import { PreviewErrorPanel } from "../preview-error-panel";

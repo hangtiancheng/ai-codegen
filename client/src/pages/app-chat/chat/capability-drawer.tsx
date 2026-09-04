@@ -1,7 +1,7 @@
 import { Loader2, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { cn } from "@/shared/lib";
+import { cn } from "cn";
 import type { AppId } from "@/shared/schemas";
 import { Button } from "@/shared/ui";
 import {
