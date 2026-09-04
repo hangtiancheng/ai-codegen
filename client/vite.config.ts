@@ -11,11 +11,19 @@ const crossOriginIsolationHeaders = {
   "Cross-Origin-Opener-Policy": "same-origin",
 };
 
-export default defineConfig(({ isPreview, command }) => ({
+export default defineConfig({
   plugins: [react(), tailwindcss(), sentryPlugin7({ dsn: "/sentry" })],
   server: {
     headers: crossOriginIsolationHeaders,
-    // proxy
+    proxy: {
+      // Dev-only: keep API + agent WebSocket same-origin with the Vite app so
+      // credentialed requests skip cross-origin CORS. Forwarded to the backend.
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
   preview: { headers: crossOriginIsolationHeaders },
   resolve: {
@@ -23,4 +31,4 @@ export default defineConfig(({ isPreview, command }) => ({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
-}));
+});
