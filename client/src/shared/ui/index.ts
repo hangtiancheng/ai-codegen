@@ -24,6 +24,18 @@ export {
 } from "./pagination-controls";
 export { renderSafeMarkdown } from "./render-safe-markdown";
 export { RootErrorFallback } from "./root-error-fallback";
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "./select";
 export { TextArea, type TextAreaProps } from "./text-area";
 export { TextField, type TextFieldProps } from "./text-field";
 export { UserInfo, type UserInfoProps } from "./user-info";

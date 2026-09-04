@@ -1,6 +1,22 @@
 import { type ReactNode } from "react";
-import { Button, TextField } from "@/shared/ui";
+import {
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  TextField,
+} from "@/shared/ui";
 import { type AdminUserFilterValues } from "./admin-user-query";
+
+const ALL_ROLES = "all";
+
+const ROLE_ITEMS = [
+  { value: ALL_ROLES, label: "All roles" },
+  { value: "user", label: "User" },
+  { value: "admin", label: "Admin" },
+];
 
 export type AdminUserFiltersProps = {
   readonly values: AdminUserFilterValues;
@@ -43,20 +59,27 @@ export function AdminUserFilters({
           onChange({ ...values, username: event.target.value })
         }
       />
-      <label className="text-foreground flex flex-col gap-1.5 text-sm font-medium">
+      <div className="text-foreground flex flex-col gap-1.5 text-sm font-medium">
         Role
-        <select
-          className="border-input bg-background text-foreground focus:border-ring focus:ring-ring/30 h-10 rounded-md border px-3 text-sm shadow-sm outline-none focus:ring-2"
-          value={values.userRole}
-          onChange={(event) =>
-            onChange({ ...values, userRole: parseRole(event.target.value) })
+        <Select
+          items={ROLE_ITEMS}
+          value={values.userRole === "" ? ALL_ROLES : values.userRole}
+          onValueChange={(value) =>
+            onChange({ ...values, userRole: parseRole(value ?? "") })
           }
         >
-          <option value="">All roles</option>
-          <option value="user">User</option>
-          <option value="admin">Admin</option>
-        </select>
-      </label>
+          <SelectTrigger aria-label="Role" className="h-10 w-full font-normal">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ROLE_ITEMS.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex items-end gap-2 md:col-span-4">
         <Button type="submit">Search</Button>
         <Button type="button" variant="outline" onClick={onReset}>

@@ -1,6 +1,22 @@
 import { type ReactNode } from "react";
-import { Button, TextField } from "@/shared/ui";
+import {
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  TextField,
+} from "@/shared/ui";
 import { type AdminChatFilterValues } from "./admin-chat-query";
+
+const ALL_MESSAGES = "all";
+
+const MESSAGE_TYPE_ITEMS = [
+  { value: ALL_MESSAGES, label: "All messages" },
+  { value: "user", label: "User" },
+  { value: "ai", label: "AI" },
+];
 
 export type AdminChatFiltersProps = {
   readonly values: AdminChatFilterValues;
@@ -44,23 +60,30 @@ export function AdminChatFilters({
           onChange({ ...values, message: event.target.value })
         }
       />
-      <label className="text-foreground flex flex-col gap-1.5 text-sm font-medium">
+      <div className="text-foreground flex flex-col gap-1.5 text-sm font-medium">
         Message type
-        <select
-          className="border-input bg-background text-foreground focus:border-ring focus:ring-ring/30 h-10 rounded-md border px-3 text-sm shadow-sm outline-none focus:ring-2"
-          value={values.messageType}
-          onChange={(event) =>
-            onChange({
-              ...values,
-              messageType: parseMessageType(event.target.value),
-            })
+        <Select
+          items={MESSAGE_TYPE_ITEMS}
+          value={values.messageType === "" ? ALL_MESSAGES : values.messageType}
+          onValueChange={(value) =>
+            onChange({ ...values, messageType: parseMessageType(value ?? "") })
           }
         >
-          <option value="">All messages</option>
-          <option value="user">User</option>
-          <option value="ai">AI</option>
-        </select>
-      </label>
+          <SelectTrigger
+            aria-label="Message type"
+            className="h-10 w-full font-normal"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {MESSAGE_TYPE_ITEMS.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex items-end gap-2 md:col-span-4">
         <Button type="submit">Search</Button>
         <Button type="button" variant="outline" onClick={onReset}>

@@ -286,6 +286,17 @@ async function clearProject(
   );
 }
 
+async function removeIfPresent(
+  container: WebContainer,
+  path: string,
+): Promise<void> {
+  try {
+    await container.fs.rm(path, { force: true });
+  } catch {
+    // Nothing to remove; ignore missing paths.
+  }
+}
+
 function streamProcessOutput(
   process: WebContainerProcess,
   appendLog: (chunk: string) => void,
@@ -300,6 +311,12 @@ async function runInstall(
   run: PreviewRun,
   callbacks: PreviewCallbacks,
 ): Promise<void> {
+  // npm has a long-standing optional-dependency bug (npm/cli#4828): a
+  // package-lock.json resolved on another OS/libc omits the WebContainer's
+  // musl-specific optional deps (e.g. @rollup/rollup-linux-x64-musl), so the
+  // install "succeeds" but Vite then fails to start. Drop the lockfile first so
+  // npm resolves the correct binaries for this platform.
+  await removeIfPresent(container, "package-lock.json");
   const process = await container.spawn("npm", ["install"]);
   run.process = process;
   let exited = false;

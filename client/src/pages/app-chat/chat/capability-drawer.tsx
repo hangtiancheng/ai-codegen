@@ -3,7 +3,14 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { cn } from "cn";
 import type { AppId } from "@/shared/schemas";
-import { Button } from "@/shared/ui";
+import {
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui";
 import {
   clearAgentMemory,
   createMcpServer,
@@ -32,6 +39,14 @@ const TABS: ReadonlyArray<{ id: TabId; label: string }> = [
   { id: "sessions", label: "Sessions" },
   { id: "memory", label: "Memory" },
 ];
+
+const formatPermissionMode = (mode: string): string =>
+  mode.replace(/_/g, " ").toLowerCase();
+
+const PERMISSION_MODE_ITEMS = PERMISSION_MODES.map((mode) => ({
+  value: mode,
+  label: formatPermissionMode(mode),
+}));
 
 export type CapabilityDrawerProps = {
   readonly appId: AppId;
@@ -523,30 +538,38 @@ function SettingsTab({
       <StatusLine loading={loading} error={error} />
       {data !== undefined ? (
         <div className="space-y-3">
-          <label className="block text-sm">
+          <div className="block text-sm">
             <span className="text-muted-foreground text-xs">
               Permission mode
             </span>
-            <select
-              className="border-border bg-background mt-1 w-full rounded-md border px-2 py-1 text-sm"
+            <Select
+              items={PERMISSION_MODE_ITEMS}
               value={data.permissionMode}
               disabled={!canManage || saving}
-              onChange={(event) =>
+              onValueChange={(value) =>
                 patch({
                   permissionMode:
-                    PERMISSION_MODES.find(
-                      (mode) => mode === event.target.value,
-                    ) ?? "BYPASS_PERMISSIONS",
+                    PERMISSION_MODES.find((mode) => mode === value) ??
+                    "BYPASS_PERMISSIONS",
                 })
               }
             >
-              {PERMISSION_MODES.map((mode) => (
-                <option key={mode} value={mode}>
-                  {mode.replace(/_/g, " ").toLowerCase()}
-                </option>
-              ))}
-            </select>
-          </label>
+              <SelectTrigger
+                size="sm"
+                className="mt-1 w-full"
+                aria-label="Permission mode"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PERMISSION_MODES.map((mode) => (
+                  <SelectItem key={mode} value={mode}>
+                    {formatPermissionMode(mode)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           {(["sandboxEnabled", "memoryEnabled", "hooksEnabled"] as const).map(
             (key) => (
               <label key={key} className="flex items-center gap-2 text-sm">
