@@ -28,6 +28,17 @@ export class ApiException extends Error {
   }
 }
 
+export function isApiExceptionWithStatus(
+  cause: unknown,
+  status: number,
+): cause is ApiException {
+  return (
+    cause instanceof ApiException &&
+    cause.error.kind === "http" &&
+    cause.error.status === status
+  );
+}
+
 export function describeApiError(error: ApiError): string {
   switch (error.kind) {
     case "network":

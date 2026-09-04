@@ -1,4 +1,11 @@
-import { ErrorCode, HttpError, hashPassword, verifyPasswordWithUpgrade } from "../common/index.js";
+import {
+  createPageResponse,
+  ErrorCode,
+  HttpError,
+  hashPassword,
+  type PageResponse,
+  verifyPasswordWithUpgrade,
+} from "../common/index.js";
 import type { UserModel } from "../generated/prisma/models/User.js";
 import { toAdminUser, toLoginUserVo, toUserVo } from "./user.mapper.js";
 import type {
@@ -94,11 +101,10 @@ export const createUserService = (userRepository: UserRepository) => {
   const getUserById = async (id: bigint): Promise<AdminUser> =>
     toAdminUser(await requireActiveById(id));
 
-  const listUserVoByPage = async (
-    query: UserPageQuery,
-  ): Promise<{ records: UserVo[]; total: number }> => {
+  const listUserVoByPage = async (query: UserPageQuery): Promise<PageResponse<UserVo>> => {
     const filter = {
       ...(query.id !== undefined && { id: query.id }),
+      ...(query.userAccount !== undefined && { userAccount: query.userAccount }),
       ...(query.username !== undefined && { username: query.username }),
       ...(query.userProfile !== undefined && {
         userProfile: query.userProfile,
@@ -117,7 +123,7 @@ export const createUserService = (userRepository: UserRepository) => {
       }),
       userRepository.countActive(filter),
     ]);
-    return { records: users.map(toUserVo), total };
+    return createPageResponse(users.map(toUserVo), query, total);
   };
 
   return {

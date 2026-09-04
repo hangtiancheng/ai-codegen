@@ -94,19 +94,25 @@ export const registerAgentFileRoutes = (
     .post("/files/:appId/rename", zValidator("json", renameSchema), async (c) => {
       const access = await resolveAppAccess(c, appService);
       requireWritable(access);
-      const { from, to } = c.req.valid("json");
+      const input = c.req.valid("json");
       const runtime = await manager.getOrCreate(access.ownerId, access.appId);
-      await runtime.runExclusive((workDir) => renameProjectEntry(workDir, from, to));
-      runtime.notifyFilesChanged([from, to]);
-      return c.json(createSuccessResponse({ status: "ok", result: { path: to } }));
+      const result = await runtime.runExclusive((workDir) => renameProjectEntry(workDir, input));
+      if (result.conflict) {
+        return c.json(createSuccessResponse({ status: "conflict", conflict: result }));
+      }
+      runtime.notifyFilesChanged([input.from, input.to]);
+      return c.json(createSuccessResponse({ status: "ok", result }));
     })
     .delete("/files/:appId/entry", zValidator("json", deleteSchema), async (c) => {
       const access = await resolveAppAccess(c, appService);
       requireWritable(access);
-      const { path } = c.req.valid("json");
+      const input = c.req.valid("json");
       const runtime = await manager.getOrCreate(access.ownerId, access.appId);
-      await runtime.runExclusive((workDir) => deleteProjectEntry(workDir, path));
-      runtime.notifyFilesChanged([path]);
-      return c.json(createSuccessResponse({ status: "ok", result: { path } }));
+      const result = await runtime.runExclusive((workDir) => deleteProjectEntry(workDir, input));
+      if (result.conflict) {
+        return c.json(createSuccessResponse({ status: "conflict", conflict: result }));
+      }
+      runtime.notifyFilesChanged([input.path]);
+      return c.json(createSuccessResponse({ status: "ok", result }));
     });
 };

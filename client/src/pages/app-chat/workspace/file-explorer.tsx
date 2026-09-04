@@ -8,6 +8,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { cn } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 import { parentPath } from "./workspace-paths";
@@ -23,7 +24,15 @@ export function FileExplorer(): ReactNode {
   const workspace = useWorkspace();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [selectedDir, setSelectedDir] = useState("");
-  const disabled = workspace.agentRunning;
+  const disabled = workspace.agentRunning || workspace.busy;
+
+  const runMutation = (operation: Promise<void>): void => {
+    void operation.catch((cause: unknown) => {
+      toast.error(
+        cause instanceof Error ? cause.message : "Workspace operation failed",
+      );
+    });
+  };
 
   const toggle = (path: string): void => {
     setCollapsed((prev) => {
@@ -37,24 +46,24 @@ export function FileExplorer(): ReactNode {
   const promptCreateFile = (): void => {
     const name = globalThis.prompt("New file name (relative to selection)");
     if (name === null || name.trim() === "") return;
-    workspace.createFile(selectedDir, name.trim());
+    runMutation(workspace.createFile(selectedDir, name.trim()));
   };
 
   const promptCreateFolder = (): void => {
     const name = globalThis.prompt("New folder name (relative to selection)");
     if (name === null || name.trim() === "") return;
-    workspace.createDirectory(selectedDir, name.trim());
+    runMutation(workspace.createDirectory(selectedDir, name.trim()));
   };
 
   const promptRename = (path: string): void => {
     const next = globalThis.prompt("Rename to", path);
     if (next === null || next.trim() === "" || next.trim() === path) return;
-    workspace.renamePath(path, next.trim());
+    runMutation(workspace.renamePath(path, next.trim()));
   };
 
   const confirmDelete = (path: string): void => {
     if (!globalThis.confirm(`Delete ${path}?`)) return;
-    workspace.deletePath(path);
+    runMutation(workspace.deletePath(path));
   };
 
   return (

@@ -1,13 +1,21 @@
 import { isUtf8 } from "node:buffer";
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
-import { lstat, mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import {
+  lstat,
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  rmdir,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
-import { ErrorCode, HttpError } from "../common/index.js";
+import { ErrorCode, HttpError, MAX_PROJECT_FILE_BYTES } from "../common/index.js";
 
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_TREE_BYTES = 20 * 1024 * 1024;
-const MAX_WRITE_BYTES = 5 * 1024 * 1024;
 
 /** Segments that must never be traversed or created through the file API. */
 const FORBIDDEN_SEGMENTS = new Set([".git", ".swifty", ".env", "node_modules", "dist", "build"]);
@@ -113,7 +121,7 @@ const readNodes = async (
     }
     if (!entry.isFile()) continue;
     const file = await readFile(fullPath);
-    if (file.byteLength > MAX_FILE_BYTES) {
+    if (file.byteLength > MAX_PROJECT_FILE_BYTES) {
       throw new HttpError(ErrorCode.OperationError, `Generated file is too large: ${entry.name}`);
     }
     total.bytes += file.byteLength;
@@ -155,39 +163,53 @@ export type WriteFileInput = Readonly<{
   expectedHash?: string | null | undefined;
 }>;
 
-export type WriteFileResult =
-  | Readonly<{ conflict: false; path: string; hash: string }>
-  | Readonly<{ conflict: true; path: string; expectedHash: string | null; actualHash: string }>;
+export type FileMutationResult =
+  | Readonly<{ conflict: false; path: string; hash?: string }>
+  | Readonly<{
+      conflict: true;
+      path: string;
+      expectedHash: string | null;
+      actualHash: string | null;
+    }>;
 
-/**
- * Atomically writes a file. When `expectedHash` is a hash string and the file
- * exists, a mismatch returns a conflict result (optimistic concurrency) instead
- * of writing. A null/absent `expectedHash` writes unconditionally (create or
- * replace), which is what terminal-sync and new-file creation need.
- */
+export type WriteFileResult = FileMutationResult;
+
+const checkExpectedHash = async (
+  target: string,
+  path: string,
+  expectedHash: string | null | undefined,
+): Promise<Extract<FileMutationResult, { conflict: true }> | undefined> => {
+  if (expectedHash === undefined) return undefined;
+  if (!existsSync(target)) {
+    return expectedHash === null
+      ? undefined
+      : { conflict: true, path, expectedHash, actualHash: null };
+  }
+  const info = await lstat(target);
+  const actualHash = info.isFile() ? sha256(await readFile(target)) : null;
+  return actualHash === expectedHash
+    ? undefined
+    : { conflict: true, path, expectedHash, actualHash };
+};
+
 export const writeProjectFile = async (
   projectDir: string,
   input: WriteFileInput,
-): Promise<WriteFileResult> => {
+): Promise<FileMutationResult> => {
   const target = validateRelativePath(projectDir, input.path);
   await assertNoSymlinkAncestors(projectDir, target);
 
   const buffer = Buffer.from(input.contents, input.encoding === "base64" ? "base64" : "utf8");
-  if (buffer.byteLength > MAX_WRITE_BYTES) {
+  if (buffer.byteLength > MAX_PROJECT_FILE_BYTES) {
     throw new HttpError(ErrorCode.ParamsError, "File contents exceed the size limit");
   }
 
-  const expected = input.expectedHash ?? null;
+  const conflict = await checkExpectedHash(target, input.path, input.expectedHash);
+  if (conflict !== undefined) return conflict;
   if (existsSync(target)) {
     const info = await lstat(target);
     if (info.isSymbolicLink() || !info.isFile()) {
       throw new HttpError(ErrorCode.ForbiddenError, "Target is not a regular file", 403);
-    }
-    if (expected !== null) {
-      const current = sha256(await readFile(target));
-      if (current !== expected) {
-        return { conflict: true, path: input.path, expectedHash: expected, actualHash: current };
-      }
     }
   }
 
@@ -206,23 +228,37 @@ export const createProjectDirectory = async (projectDir: string, path: string): 
 
 export const renameProjectEntry = async (
   projectDir: string,
-  from: string,
-  to: string,
-): Promise<void> => {
-  const source = validateRelativePath(projectDir, from);
-  const destination = validateRelativePath(projectDir, to);
+  input: Readonly<{ from: string; to: string; expectedHash?: string | null | undefined }>,
+): Promise<FileMutationResult> => {
+  const source = validateRelativePath(projectDir, input.from);
+  const destination = validateRelativePath(projectDir, input.to);
+  const conflict = await checkExpectedHash(source, input.from, input.expectedHash);
+  if (conflict !== undefined) return conflict;
   if (!existsSync(source)) {
     throw new HttpError(ErrorCode.NotFoundError, "Source path not found", 404);
   }
   await assertNoSymlinkAncestors(projectDir, destination);
   await mkdir(dirname(destination), { recursive: true });
   await rename(source, destination);
+  return { conflict: false, path: input.to };
 };
 
-export const deleteProjectEntry = async (projectDir: string, path: string): Promise<void> => {
-  const target = validateRelativePath(projectDir, path);
+export const deleteProjectEntry = async (
+  projectDir: string,
+  input: Readonly<{
+    path: string;
+    recursive?: boolean | undefined;
+    expectedHash?: string | null | undefined;
+  }>,
+): Promise<FileMutationResult> => {
+  const target = validateRelativePath(projectDir, input.path);
+  const conflict = await checkExpectedHash(target, input.path, input.expectedHash);
+  if (conflict !== undefined) return conflict;
   if (!existsSync(target)) {
     throw new HttpError(ErrorCode.NotFoundError, "Path not found", 404);
   }
-  await rm(target, { force: true, recursive: true });
+  const info = await lstat(target);
+  if (info.isDirectory() && input.recursive !== true) await rmdir(target);
+  else await rm(target, { force: true, recursive: input.recursive === true });
+  return { conflict: false, path: input.path };
 };

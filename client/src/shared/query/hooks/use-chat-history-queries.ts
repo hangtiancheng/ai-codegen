@@ -8,8 +8,8 @@ import { type AppId, type ChatHistoryQueryRequest } from "@/shared/schemas";
 import { queryKeys } from "../query-keys";
 
 export type AppChatHistoryParams = {
+  readonly current: number;
   readonly pageSize: number;
-  readonly lastCreateTime?: string;
 };
 
 export function useAppChatHistoryPage(
@@ -24,13 +24,7 @@ export function useAppChatHistoryPage(
       if (!appId) {
         throw new Error("appId is required");
       }
-      const { pageSize, lastCreateTime } = params;
-      return listAppChatHistory(
-        appId,
-        lastCreateTime === undefined
-          ? { pageSize }
-          : { pageSize, lastCreateTime },
-      );
+      return listAppChatHistory(appId, params);
     },
     enabled: appId !== undefined,
   });

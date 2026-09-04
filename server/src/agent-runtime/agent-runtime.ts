@@ -14,11 +14,15 @@ import {
   getMaxOutputTokens,
   MemoryConsolidator,
   MemoryExtractor,
+  type Message,
   PermissionChecker,
   type PermissionMode,
   type Question,
   type RemoteAgentHandle,
   runInline,
+  type ThinkingBlock,
+  type ToolResultBlock,
+  type ToolUseBlock,
 } from "@swifty.js/swifty";
 import { env } from "../config/index.js";
 import type { AgentPermissionMode, AgentSessionStatus } from "../generated/prisma/enums.js";
@@ -47,6 +51,63 @@ import type { AgentConnection, PermissionDecision, QuestionAnswers } from "./typ
 import { AsyncLock } from "./workspace-lock.js";
 
 const REPLAY_LIMIT = 200;
+const BACKLOG_BATCH_SIZE = 1_000;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isMessageContent = (value: unknown): value is Message["content"] =>
+  typeof value === "string" || (Array.isArray(value) && value.every((item) => isRecord(item)));
+
+const isThinkingBlock = (value: unknown): value is ThinkingBlock =>
+  isRecord(value) && typeof value.thinking === "string" && typeof value.signature === "string";
+
+const isToolUseBlock = (value: unknown): value is ToolUseBlock =>
+  isRecord(value) &&
+  typeof value.toolUseId === "string" &&
+  typeof value.toolName === "string" &&
+  isRecord(value.arguments);
+
+const isToolResultBlock = (value: unknown): value is ToolResultBlock =>
+  isRecord(value) &&
+  typeof value.toolUseId === "string" &&
+  isMessageContent(value.content) &&
+  typeof value.isError === "boolean";
+
+const isMessage = (value: unknown): value is Message => {
+  if (
+    !isRecord(value) ||
+    (value.role !== "user" && value.role !== "assistant" && value.role !== "system") ||
+    !isMessageContent(value.content) ||
+    (value.role !== "user" && typeof value.content !== "string")
+  ) {
+    return false;
+  }
+  if (
+    value.thinkingBlocks !== undefined &&
+    (!Array.isArray(value.thinkingBlocks) || !value.thinkingBlocks.every(isThinkingBlock))
+  ) {
+    return false;
+  }
+  if (
+    value.toolUses !== undefined &&
+    (!Array.isArray(value.toolUses) || !value.toolUses.every(isToolUseBlock))
+  ) {
+    return false;
+  }
+  return (
+    value.toolResults === undefined ||
+    (Array.isArray(value.toolResults) && value.toolResults.every(isToolResultBlock))
+  );
+};
+
+export const parseSavedConversationMessages = (context: unknown): Message[] | null => {
+  if (!isRecord(context) || !Array.isArray(context.messages)) return null;
+  return context.messages.every(isMessage) ? context.messages : null;
+};
+
+const parseSavedActiveSkills = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((name): name is string => typeof name === "string") : [];
 
 const toSwiftyMode = (mode: AgentPermissionMode): PermissionMode => {
   switch (mode) {
@@ -107,12 +168,15 @@ export class AgentRuntime {
 
   private workspace: AgentWorkspaceModel;
   private handlePromise: Promise<RemoteAgentHandle> | undefined;
+  private sessionPromise: Promise<string> | undefined;
+  private disposePromise: Promise<void> | undefined;
   private sessionId = "";
   private sequence = 0n;
   private currentAbort: AbortController | undefined;
   private currentTurnId: string | null = null;
   private lastActivityMs = Date.now();
-  private disposed = false;
+  private activeTaskCount = 0;
+  private disposing = false;
 
   constructor(deps: AgentRuntimeDeps) {
     this.appId = deps.appId;
@@ -133,8 +197,28 @@ export class AgentRuntime {
     return this.connections.size;
   }
 
+  get isBusy(): boolean {
+    return this.activeTaskCount > 0 || this.currentTurnId !== null || this.broker.hasPending();
+  }
+
   private markActivity(): void {
     this.lastActivityMs = Date.now();
+  }
+
+  private assertAcceptingTasks(): void {
+    if (this.disposing) throw new Error("Agent runtime is disposing");
+  }
+
+  private runLockedTask<T>(task: () => Promise<T>): Promise<T> {
+    this.assertAcceptingTasks();
+    this.activeTaskCount += 1;
+    const result = this.lock.run(async () => {
+      this.assertAcceptingTasks();
+      return task();
+    });
+    return result.finally(() => {
+      this.activeTaskCount -= 1;
+    });
   }
 
   private broadcast(message: AgentServerMessage): void {
@@ -147,25 +231,45 @@ export class AgentRuntime {
     }
   }
 
-  private async ensureSession(): Promise<string> {
-    if (this.sessionId.length > 0) return this.sessionId;
+  private ensureSession(): Promise<string> {
+    this.assertAcceptingTasks();
+    if (this.sessionId.length > 0) return Promise.resolve(this.sessionId);
+    if (this.sessionPromise !== undefined) return this.sessionPromise;
+    const sessionPromise = this.initializeSession();
+    this.sessionPromise = sessionPromise;
+    void sessionPromise.catch(() => {
+      if (this.sessionPromise === sessionPromise) this.sessionPromise = undefined;
+    });
+    return sessionPromise;
+  }
+
+  private async initializeSession(): Promise<string> {
     const currentId = this.workspace.currentSessionId;
     if (currentId !== null) {
       const existing = await this.stores.sessions.findById(currentId);
-      if (existing !== null && existing.status !== "COMPLETED" && existing.status !== "ABORTED") {
-        this.sessionId = existing.id;
-        this.sequence = existing.lastEventSequence;
-        return this.sessionId;
+      if (existing !== null) {
+        // A fresh process has no Promise waiting for persisted PENDING rows. Only
+        // cancel those stale rows here; live broker entries are never consulted.
+        await this.stores.interactions.cancelPending(existing.id);
+        if (existing.status !== "COMPLETED" && existing.status !== "ABORTED") {
+          if (existing.status !== "IDLE") {
+            await this.stores.sessions.updateStatus(existing.id, "IDLE");
+          }
+          this.sessionId = existing.id;
+          this.sequence = existing.lastEventSequence;
+          return this.sessionId;
+        }
       }
     }
-    const session = await this.stores.sessions.create(this.workspaceId);
-    await this.stores.workspaces.setCurrentSession(this.workspaceId, session.id);
+    const session = await this.stores.sessions.createAndSetCurrent(this.workspaceId);
+    this.workspace = { ...this.workspace, currentSessionId: session.id };
     this.sessionId = session.id;
-    this.sequence = 0n;
+    this.sequence = session.lastEventSequence;
     return this.sessionId;
   }
 
   private async ensureHandle(): Promise<RemoteAgentHandle> {
+    this.assertAcceptingTasks();
     if (this.handlePromise !== undefined) return this.handlePromise;
     this.handlePromise = this.createHandle().catch((error: unknown) => {
       this.handlePromise = undefined;
@@ -198,17 +302,52 @@ export class AgentRuntime {
 
   private async rehydrate(handle: RemoteAgentHandle): Promise<void> {
     const sessionId = await this.ensureSession();
-    const rows = await this.stores.transcript.listRecent(sessionId, REPLAY_LIMIT);
-    for (const row of rows) {
-      const payload = row.payload as { text?: unknown } | null;
-      const text = payload !== null && typeof payload.text === "string" ? payload.text : "";
-      if (text.length === 0) continue;
-      if (row.kind === "user_message") handle.conv.addUserMessage(text);
-      else if (row.kind === "assistant_message") handle.conv.addAssistantMessage(text);
+    const session = await this.stores.sessions.findById(sessionId);
+    const savedMessages = parseSavedConversationMessages(session?.context);
+
+    if (savedMessages !== null && savedMessages.length > 0) {
+      for (const message of savedMessages) {
+        if (message.role === "user") {
+          if (message.toolResults !== undefined && message.toolResults.length > 0) {
+            handle.conv.addToolResultsMessage(message.toolResults);
+          } else {
+            handle.conv.addUserMessage(message.content);
+          }
+        } else if (message.role === "assistant" && typeof message.content === "string") {
+          if (message.thinkingBlocks !== undefined || message.toolUses !== undefined) {
+            handle.conv.addAssistantFull(
+              message.content,
+              message.thinkingBlocks ?? [],
+              message.toolUses ?? [],
+            );
+          } else {
+            handle.conv.addAssistantMessage(message.content);
+          }
+        } else if (typeof message.content === "string") {
+          handle.conv.addSystemReminder(message.content);
+        }
+      }
+    } else {
+      const rows = await this.stores.transcript.listRecent(sessionId, REPLAY_LIMIT);
+      for (const row of rows) {
+        const payload = row.payload as { text?: unknown } | null;
+        const text = payload !== null && typeof payload.text === "string" ? payload.text : "";
+        if (text.length === 0) continue;
+        if (row.kind === "user_message") handle.conv.addUserMessage(text);
+        else if (row.kind === "assistant_message") handle.conv.addAssistantMessage(text);
+      }
+    }
+
+    if (handle.skillCatalog !== null) {
+      for (const name of parseSavedActiveSkills(session?.activeSkills)) {
+        const skill = handle.skillCatalog.get(name);
+        if (skill !== undefined) handle.activeSkills.set(name, skill.body);
+      }
     }
   }
 
   private readonly askUser: Asker = async (questions: Question[]) => {
+    this.assertAcceptingTasks();
     const sessionId = this.sessionId;
     const { answers, interactionId } = await this.broker.requestQuestions({
       questions,
@@ -236,6 +375,7 @@ export class AgentRuntime {
       args: Record<string, unknown>,
       decision: Decision,
     ): Promise<PermissionDecision> => {
+      if (this.disposing) return "deny";
       const description = checker.describeToolAction(toolName, args);
       const { decision: pending, interactionId } = await this.broker.requestPermission({
         payload: toPermissionPayload(toolName, args, decision, description),
@@ -273,14 +413,13 @@ export class AgentRuntime {
     kind: string,
     payload: Record<string, unknown>,
   ): Promise<void> {
-    this.sequence += 1n;
-    const row = await this.stores.transcript.append({
+    const row = await this.stores.transcript.appendNext({
       kind,
       payload,
-      sequence: this.sequence,
       sessionId: this.sessionId,
       turnId,
     });
+    if (row.sequence > this.sequence) this.sequence = row.sequence;
     this.broadcast({ event: toEventMessage(row), type: "event" });
   }
 
@@ -304,19 +443,39 @@ export class AgentRuntime {
   /** Runs a task under the same lock as agent turns (used by file mutations). */
   async runExclusive<T>(task: (workDir: string) => Promise<T>): Promise<T> {
     this.markActivity();
-    return this.lock.run(() => task(this.workDir));
+    return this.runLockedTask(() => task(this.workDir));
   }
 
   notifyFilesChanged(paths: readonly string[]): void {
     this.broadcast({ paths: [...paths], type: "files_changed" });
   }
 
+  private async currentHighWatermark(sessionId: string): Promise<bigint> {
+    const persisted = await this.stores.sessions.findById(sessionId);
+    const highWatermark =
+      persisted !== null && persisted !== undefined && persisted.lastEventSequence > this.sequence
+        ? persisted.lastEventSequence
+        : this.sequence;
+    this.sequence = highWatermark;
+    return highWatermark;
+  }
+
   async ready(connection: AgentConnection): Promise<void> {
     const sessionId = await this.ensureSession();
+    const highWatermark = await this.currentHighWatermark(sessionId);
+    const pendingInteractions = this.broker.snapshot(sessionId);
     connection.send({
-      lastSequence: this.sequence.toString(),
+      currentTurnId: this.currentTurnId,
+      highWatermark: highWatermark.toString(),
+      pendingInteractions,
       permissionMode: this.workspace.permissionMode,
       readOnly: connection.readOnly,
+      runtimeStatus:
+        this.currentTurnId === null
+          ? "idle"
+          : pendingInteractions.length > 0
+            ? "waiting"
+            : "running",
       sessionId,
       type: "ready",
     });
@@ -324,8 +483,28 @@ export class AgentRuntime {
 
   async sendBacklog(connection: AgentConnection, afterSequence: bigint): Promise<void> {
     const sessionId = await this.ensureSession();
-    const rows = await this.stores.transcript.listAfter(sessionId, afterSequence, 1000);
-    connection.send({ events: rows.map(toEventMessage), type: "transcript_batch" });
+    const highWatermark = await this.currentHighWatermark(sessionId);
+    let cursor = afterSequence;
+
+    while (true) {
+      const rows = await this.stores.transcript.listAfter(
+        sessionId,
+        cursor,
+        highWatermark,
+        BACKLOG_BATCH_SIZE,
+      );
+      const nextCursor = rows.at(-1)?.sequence ?? cursor;
+      const complete = rows.length === 0 || nextCursor >= highWatermark;
+      connection.send({
+        complete,
+        events: rows.map(toEventMessage),
+        highWatermark: highWatermark.toString(),
+        sessionId,
+        type: "transcript_batch",
+      });
+      if (complete) return;
+      cursor = nextCursor;
+    }
   }
 
   applySoftSettings(patch: {
@@ -352,8 +531,7 @@ export class AgentRuntime {
   }
 
   async runTurn(input: RunTurnInput): Promise<void> {
-    await this.lock.run(async () => {
-      if (this.disposed) return;
+    await this.runLockedTask(async () => {
       this.markActivity();
       const handle = await this.ensureHandle();
       const sessionId = await this.ensureSession();
@@ -361,83 +539,85 @@ export class AgentRuntime {
       const abort = new AbortController();
       this.currentAbort = abort;
 
-      await this.emitPersist(input.turnId, "user_message", {
-        text: input.input,
-        ...(input.selectedElement !== undefined && { selectedElement: input.selectedElement }),
-        ...(input.previewError !== undefined && { previewError: input.previewError }),
-      });
-      await this.setStatus("RUNNING");
-      this.broadcast({
-        sessionId,
-        status: "running",
-        turnId: input.turnId,
-        type: "runtime_status",
-      });
-
-      const adapter = createEventAdapter();
-      const checker = new PermissionChecker(
-        this.workDir,
-        toSwiftyMode(this.workspace.permissionMode),
-      );
-      checker.sandboxEnabled = this.workspace.sandboxEnabled;
-
-      handle.conv.addUserMessage(this.composePrompt(input));
-      const skillSection =
-        handle.skillCatalog !== null ? buildSkillSection(handle.skillCatalog, this.workDir) : "";
-
-      const agent = new Agent({
-        abortSignal: abort.signal,
-        activeSkills: handle.activeSkills,
-        checker,
-        client: handle.client,
-        contextWindow: handle.contextWindow,
-        conversation: handle.conv,
-        coordinatorActiveFn: () => coordinatorActive(false),
-        fileHistory: handle.fileHistory,
-        fileStateCache: handle.fileStateCache,
-        instructions: handle.longTermMemoryInstructions,
-        maxIterations: env.AI_MAX_ITERATIONS,
-        maxOutput: getMaxOutputTokens(handle.provider),
-        memoryContent: this.workspace.memoryEnabled ? handle.longTermMemoryMemoryContent : "",
-        notificationFn: () => handle.teamManager.drainLeads(),
-        onPermissionRequest: this.buildPermissionCallback(checker, input.turnId),
-        recoveryState: handle.recoveryState,
-        registry: handle.registry,
-        // Session persistence is DB-only: passing an empty sessionId disables
-        // Swifty's own JSONL session writes so the DB transcript is authoritative.
-        sessionId: "",
-        skillSection,
-        workDir: this.workDir,
-        toolFilter: (name: string) =>
-          coordinatorToolFilter(false)(name) &&
-          (handle.toolFilter !== null ? handle.toolFilter(name) : true),
-        ...(this.workspace.hooksEnabled &&
-          handle.hookEngine !== null && { hookEngine: handle.hookEngine }),
-        ...(this.workspace.memoryEnabled && {
-          onLoopComplete: (conv) => this.runMemoryMaintenance(handle, conv),
-        }),
-      });
-
       try {
-        for await (const event of agent.run()) {
-          await this.dispatchEvent(input.turnId, adapter, event);
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Agent run failed";
-        await this.emitPersist(input.turnId, "error", { message });
-        this.broadcast({
-          code: "agent_error",
-          message,
-          recoverable: true,
-          requestId: input.requestId,
-          type: "error",
+        await this.emitPersist(input.turnId, "user_message", {
+          text: input.input,
+          ...(input.selectedElement !== undefined && { selectedElement: input.selectedElement }),
+          ...(input.previewError !== undefined && { previewError: input.previewError }),
         });
+        await this.setStatus("RUNNING");
+        this.broadcast({
+          sessionId,
+          status: "running",
+          turnId: input.turnId,
+          type: "runtime_status",
+        });
+
+        const adapter = createEventAdapter();
+        const checker = new PermissionChecker(
+          this.workDir,
+          toSwiftyMode(this.workspace.permissionMode),
+        );
+        checker.sandboxEnabled = this.workspace.sandboxEnabled;
+
+        handle.conv.addUserMessage(this.composePrompt(input));
+        const skillSection =
+          handle.skillCatalog !== null ? buildSkillSection(handle.skillCatalog, this.workDir) : "";
+
+        const agent = new Agent({
+          abortSignal: abort.signal,
+          activeSkills: handle.activeSkills,
+          checker,
+          client: handle.client,
+          contextWindow: handle.contextWindow,
+          conversation: handle.conv,
+          coordinatorActiveFn: () => coordinatorActive(false),
+          fileHistory: handle.fileHistory,
+          fileStateCache: handle.fileStateCache,
+          instructions: handle.longTermMemoryInstructions,
+          maxIterations: env.AI_MAX_ITERATIONS,
+          maxOutput: getMaxOutputTokens(handle.provider),
+          memoryContent: this.workspace.memoryEnabled ? handle.longTermMemoryMemoryContent : "",
+          notificationFn: () => handle.teamManager.drainLeads(),
+          onPermissionRequest: this.buildPermissionCallback(checker, input.turnId),
+          recoveryState: handle.recoveryState,
+          registry: handle.registry,
+          // Session persistence is DB-only: passing an empty sessionId disables
+          // Swifty's own JSONL session writes so the DB transcript is authoritative.
+          sessionId: "",
+          skillSection,
+          workDir: this.workDir,
+          toolFilter: (name: string) =>
+            coordinatorToolFilter(false)(name) &&
+            (handle.toolFilter !== null ? handle.toolFilter(name) : true),
+          ...(this.workspace.hooksEnabled &&
+            handle.hookEngine !== null && { hookEngine: handle.hookEngine }),
+          ...(this.workspace.memoryEnabled && {
+            onLoopComplete: (conv) => this.runMemoryMaintenance(handle, conv),
+          }),
+        });
+
+        try {
+          for await (const event of agent.run()) {
+            await this.dispatchEvent(input.turnId, adapter, event);
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Agent run failed";
+          await this.emitPersist(input.turnId, "error", { message });
+          this.broadcast({
+            code: "agent_error",
+            message,
+            recoverable: true,
+            requestId: input.requestId,
+            type: "error",
+          });
+        }
+
+        await this.finalizeTurn(handle, input, adapter);
       } finally {
         this.currentAbort = undefined;
+        this.currentTurnId = null;
       }
-
-      await this.finalizeTurn(handle, input, adapter);
-      this.currentTurnId = null;
     });
   }
 
@@ -521,7 +701,6 @@ export class AgentRuntime {
       await this.stores.sessions.saveContext(this.sessionId, {
         activeSkills: [...handle.activeSkills.keys()],
         context: { messages: handle.conv.getMessages() },
-        lastEventSequence: this.sequence,
         runtimeMetadata: { lastOutcome: outcome, lastTurnId: input.turnId },
       });
     } catch {
@@ -532,13 +711,29 @@ export class AgentRuntime {
     this.broadcast({ sessionId: this.sessionId, status: "idle", type: "runtime_status" });
   }
 
-  async dispose(): Promise<void> {
-    if (this.disposed) return;
-    this.disposed = true;
+  dispose(): Promise<void> {
+    if (this.disposePromise !== undefined) return this.disposePromise;
+    this.disposing = true;
+    this.disposePromise = this.disposeResources();
+    return this.disposePromise;
+  }
+
+  private async disposeResources(): Promise<void> {
     this.currentAbort?.abort();
+    const sessionAtAbort = this.sessionId;
+    if (sessionAtAbort.length > 0) {
+      await this.broker.cancelSession(sessionAtAbort).catch(() => undefined);
+    }
+
+    // Disposal is never called from inside the workspace lock: doing so would
+    // wait on the task that invoked it. Admission is already closed above.
+    await this.lock.drain();
+
+    await this.sessionPromise?.catch(() => undefined);
     if (this.sessionId.length > 0) {
       await this.broker.cancelSession(this.sessionId).catch(() => undefined);
     }
+
     if (this.handlePromise !== undefined) {
       const handle = await this.handlePromise.catch(() => undefined);
       if (handle !== undefined) {
@@ -552,19 +747,47 @@ export class AgentRuntime {
       }
     }
     for (const connection of this.connections) {
-      connection.close(1001, "runtime disposed");
+      try {
+        connection.close(1001, "runtime disposed");
+      } catch {
+        /* continue closing remaining sockets */
+      }
     }
     this.connections.clear();
   }
 
   async resolvePermission(interactionId: string, decision: PermissionDecision): Promise<boolean> {
     this.markActivity();
-    return this.broker.resolvePermission(interactionId, decision);
+    const pending = this.broker
+      .snapshot(this.sessionId)
+      .find((interaction) => interaction.interactionId === interactionId);
+    const resolved = await this.broker.resolvePermission(interactionId, decision);
+    if (resolved && pending !== undefined) {
+      this.broadcast({
+        interactionId,
+        outcome: decision === "deny" ? "denied" : "allowed",
+        sessionId: pending.sessionId,
+        type: "interaction_resolved",
+      });
+    }
+    return resolved;
   }
 
   async resolveQuestion(interactionId: string, answers: QuestionAnswers): Promise<boolean> {
     this.markActivity();
-    return this.broker.resolveQuestion(interactionId, answers);
+    const pending = this.broker
+      .snapshot(this.sessionId)
+      .find((interaction) => interaction.interactionId === interactionId);
+    const resolved = await this.broker.resolveQuestion(interactionId, answers);
+    if (resolved && pending !== undefined) {
+      this.broadcast({
+        interactionId,
+        outcome: "answered",
+        sessionId: pending.sessionId,
+        type: "interaction_resolved",
+      });
+    }
+    return resolved;
   }
 
   getCommandCandidates(): CommandCandidate[] {
@@ -572,10 +795,11 @@ export class AgentRuntime {
   }
 
   private async startNewSession(): Promise<string> {
-    const session = await this.stores.sessions.create(this.workspaceId);
-    await this.stores.workspaces.setCurrentSession(this.workspaceId, session.id);
+    const session = await this.stores.sessions.createAndSetCurrent(this.workspaceId);
+    this.workspace = { ...this.workspace, currentSessionId: session.id };
     this.sessionId = session.id;
-    this.sequence = 0n;
+    this.sequence = session.lastEventSequence;
+    this.sessionPromise = Promise.resolve(session.id);
     return session.id;
   }
 
@@ -660,16 +884,19 @@ export class AgentRuntime {
       return;
     }
     if (name === "clear") {
-      await this.lock.run(async () => {
+      await this.runLockedTask(async () => {
         handle.conv.reset();
         await this.startNewSession();
       });
       this.sendCommandResult(requestId, name, true, { result: { sessionId: this.sessionId } });
+      for (const connection of this.connections) {
+        await this.ready(connection);
+      }
       this.broadcast({ sessionId: this.sessionId, status: "idle", type: "runtime_status" });
       return;
     }
     if (name === "compact") {
-      await this.lock.run(async () => {
+      await this.runLockedTask(async () => {
         const tools = handle.registry.listTools();
         const result = await forceCompact(
           handle.conv,
@@ -725,7 +952,7 @@ export class AgentRuntime {
       this.sendCommandResult(requestId, "rewind", true, { result: { snapshots } });
       return;
     }
-    const ok = await this.git.rewindTo(this.workDir, sha);
+    const ok = await this.runLockedTask(() => this.git.rewindTo(this.workDir, sha));
     if (ok) this.broadcast({ paths: [], revision: sha, type: "files_changed" });
     this.sendCommandResult(requestId, "rewind", ok, {
       ...(ok ? { result: { rewoundTo: sha } } : { error: "Rewind failed" }),

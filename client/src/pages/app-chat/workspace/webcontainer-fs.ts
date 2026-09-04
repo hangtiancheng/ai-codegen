@@ -60,6 +60,63 @@ export async function readContainerText(
   return container.fs.readFile(path, "utf-8");
 }
 
+export async function readContainerBytes(
+  container: WebContainer,
+  path: string,
+): Promise<Uint8Array> {
+  return container.fs.readFile(path);
+}
+
+export function base64ToBytes(contents: string): Uint8Array {
+  const binary = atob(contents);
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+
+export function bytesToBase64(contents: Uint8Array): string {
+  const chunkSize = 0x8000;
+  let binary = "";
+  for (let offset = 0; offset < contents.length; offset += chunkSize) {
+    binary += String.fromCharCode(
+      ...contents.subarray(offset, offset + chunkSize),
+    );
+  }
+  return btoa(binary);
+}
+
+export function isUtf8Bytes(contents: Uint8Array): boolean {
+  try {
+    new TextDecoder("utf-8", { fatal: true }).decode(contents);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export type ContainerPathSnapshot =
+  | { readonly kind: "file"; readonly contents: Uint8Array }
+  | { readonly kind: "directory" }
+  | { readonly kind: "missing" };
+
+/** Inspect a watcher path without treating directory read failures as deletes. */
+export async function readContainerPath(
+  container: WebContainer,
+  path: string,
+): Promise<ContainerPathSnapshot> {
+  try {
+    return {
+      kind: "file",
+      contents: await readContainerBytes(container, path),
+    };
+  } catch {
+    try {
+      await container.fs.readdir(path);
+      return { kind: "directory" };
+    } catch {
+      return { kind: "missing" };
+    }
+  }
+}
+
 export async function writeContainerText(
   container: WebContainer,
   path: string,
@@ -68,6 +125,16 @@ export async function writeContainerText(
   const parent = parentPath(path);
   if (parent !== "") await container.fs.mkdir(parent, { recursive: true });
   await container.fs.writeFile(path, text);
+}
+
+export async function writeContainerBytes(
+  container: WebContainer,
+  path: string,
+  contents: Uint8Array,
+): Promise<void> {
+  const parent = parentPath(path);
+  if (parent !== "") await container.fs.mkdir(parent, { recursive: true });
+  await container.fs.writeFile(path, contents);
 }
 
 export async function removeContainerPath(

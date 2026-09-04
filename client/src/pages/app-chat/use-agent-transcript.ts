@@ -32,11 +32,11 @@ export type AgentCommandCandidate = {
 
 export type AgentTranscriptEvent = {
   readonly sequence: string;
-  readonly sessionId: string | undefined;
+  readonly sessionId: string;
   readonly turnId: string | undefined;
   readonly kind: string;
   readonly payload: JsonValue;
-  readonly createdAt: string | undefined;
+  readonly createdAt: string;
 };
 
 export type AgentPermissionRequest = {
@@ -84,11 +84,17 @@ export type AgentError = {
 export type AgentTranscriptState = {
   readonly connectionState: AgentConnectionState;
   readonly runtimeStatus: AgentRuntimeStatus;
+  readonly currentTurnId: string | undefined;
   readonly sessionId: string | undefined;
   readonly permissionMode: string | undefined;
   readonly readOnly: boolean;
+  /** Highest contiguous event actually applied for the current session. */
   readonly lastSequence: string;
+  /** Fixed server target for the current replay cycle. */
+  readonly replayHighWatermark: string;
+  readonly replayComplete: boolean;
   readonly replaying: boolean;
+  readonly pendingEvents: ReadonlyArray<AgentTranscriptEvent>;
   readonly events: ReadonlyArray<AgentTranscriptEvent>;
   readonly streamingText: string;
   readonly thinkingText: string;
@@ -112,7 +118,11 @@ export type AgentTranscriptAction =
       readonly sessionId: string;
       readonly readOnly: boolean;
       readonly permissionMode: string;
-      readonly lastSequence: string;
+      readonly highWatermark: string;
+      readonly runtimeStatus: AgentRuntimeStatus;
+      readonly currentTurnId: string | undefined;
+      readonly pendingPermission: AgentPermissionRequest | undefined;
+      readonly pendingQuestion: AgentQuestionRequest | undefined;
     }
   | {
       readonly type: "candidates";
@@ -120,6 +130,9 @@ export type AgentTranscriptAction =
     }
   | {
       readonly type: "transcript_batch";
+      readonly sessionId: string;
+      readonly highWatermark: string;
+      readonly complete: boolean;
       readonly events: ReadonlyArray<AgentTranscriptEvent>;
     }
   | { readonly type: "event"; readonly event: AgentTranscriptEvent }
@@ -128,17 +141,24 @@ export type AgentTranscriptAction =
   | {
       readonly type: "runtime_status";
       readonly status: AgentRuntimeStatus;
+      readonly turnId: string | undefined;
       readonly detail: string | undefined;
     }
   | {
       readonly type: "permission_request";
+      readonly sessionId: string;
       readonly request: AgentPermissionRequest;
     }
   | {
       readonly type: "question_request";
+      readonly sessionId: string;
       readonly request: AgentQuestionRequest;
     }
-  | { readonly type: "interaction_cleared"; readonly interactionId: string }
+  | {
+      readonly type: "interaction_resolved";
+      readonly sessionId: string;
+      readonly interactionId: string;
+    }
   | {
       readonly type: "command_result";
       readonly result: Omit<AgentCommandResult, "id">;
@@ -155,11 +175,15 @@ export type AgentTranscriptAction =
 export const initialAgentTranscriptState: AgentTranscriptState = {
   connectionState: "idle",
   runtimeStatus: "idle",
+  currentTurnId: undefined,
   sessionId: undefined,
   permissionMode: undefined,
   readOnly: false,
   lastSequence: "0",
+  replayHighWatermark: "0",
+  replayComplete: true,
   replaying: false,
+  pendingEvents: [],
   events: [],
   streamingText: "",
   thinkingText: "",
@@ -184,14 +208,17 @@ export function compareAgentSequences(left: string, right: string): number {
   return left < right ? -1 : 1;
 }
 
+const eventKey = (event: AgentTranscriptEvent): string =>
+  `${event.sessionId}:${event.sequence}`;
+
 function mergeEvents(
   current: ReadonlyArray<AgentTranscriptEvent>,
   incoming: ReadonlyArray<AgentTranscriptEvent>,
 ): AgentTranscriptEvent[] {
-  const bySequence = new Map<string, AgentTranscriptEvent>();
-  for (const event of current) bySequence.set(event.sequence, event);
-  for (const event of incoming) bySequence.set(event.sequence, event);
-  return [...bySequence.values()].sort((left, right) =>
+  const bySessionSequence = new Map<string, AgentTranscriptEvent>();
+  for (const event of current) bySessionSequence.set(eventKey(event), event);
+  for (const event of incoming) bySessionSequence.set(eventKey(event), event);
+  return [...bySessionSequence.values()].sort((left, right) =>
     compareAgentSequences(left.sequence, right.sequence),
   );
 }
@@ -208,16 +235,51 @@ const TURN_BOUNDARY_KINDS = new Set([
 function applyEvents(
   state: AgentTranscriptState,
   incoming: ReadonlyArray<AgentTranscriptEvent>,
+  replay: Readonly<{
+    complete?: boolean;
+    highWatermark?: string;
+  }> = {},
 ): AgentTranscriptState {
-  const events = mergeEvents(state.events, incoming);
-  const lastSequence = events.at(-1)?.sequence ?? state.lastSequence;
-  const clearsBuffers = incoming.some((event) =>
+  if (state.sessionId === undefined) return state;
+
+  const pendingBySequence = new Map<string, AgentTranscriptEvent>();
+  for (const event of [...state.pendingEvents, ...incoming]) {
+    if (
+      event.sessionId === state.sessionId &&
+      compareAgentSequences(event.sequence, state.lastSequence) > 0
+    ) {
+      pendingBySequence.set(event.sequence, event);
+    }
+  }
+
+  const applied: AgentTranscriptEvent[] = [];
+  let lastSequence = state.lastSequence;
+  while (true) {
+    const expected = (BigInt(lastSequence) + 1n).toString();
+    const next = pendingBySequence.get(expected);
+    if (next === undefined) break;
+    pendingBySequence.delete(expected);
+    applied.push(next);
+    lastSequence = expected;
+  }
+
+  const replayHighWatermark = replay.highWatermark ?? state.replayHighWatermark;
+  const replayComplete = replay.complete ?? state.replayComplete;
+  const clearsBuffers = applied.some((event) =>
     TURN_BOUNDARY_KINDS.has(event.kind),
   );
   return {
     ...state,
-    events,
+    events: mergeEvents(state.events, applied),
     lastSequence,
+    pendingEvents: [...pendingBySequence.values()].sort((left, right) =>
+      compareAgentSequences(left.sequence, right.sequence),
+    ),
+    replayComplete,
+    replayHighWatermark,
+    replaying:
+      !replayComplete ||
+      compareAgentSequences(lastSequence, replayHighWatermark) < 0,
     ...(clearsBuffers && { streamingText: "", thinkingText: "" }),
   };
 }
@@ -229,19 +291,39 @@ export function agentTranscriptReducer(
   switch (action.type) {
     case "connection_changed":
       return { ...state, connectionState: action.state };
-    case "ready":
+    case "ready": {
+      const sessionChanged =
+        state.sessionId !== undefined && state.sessionId !== action.sessionId;
+      const base = sessionChanged
+        ? {
+            ...initialAgentTranscriptState,
+            candidates: state.candidates,
+            connectionState: state.connectionState,
+          }
+        : state;
       return {
-        ...state,
-        sessionId: action.sessionId,
-        readOnly: action.readOnly,
+        ...base,
+        currentTurnId: action.currentTurnId,
+        pendingEvents: sessionChanged ? [] : base.pendingEvents,
+        pendingPermission: action.pendingPermission,
+        pendingQuestion: action.pendingQuestion,
         permissionMode: action.permissionMode,
-        lastSequence: action.lastSequence,
+        readOnly: action.readOnly,
+        replayComplete: false,
+        replayHighWatermark: action.highWatermark,
         replaying: true,
+        runtimeStatus: action.runtimeStatus,
+        sessionId: action.sessionId,
       };
+    }
     case "candidates":
       return { ...state, candidates: action.candidates };
     case "transcript_batch":
-      return { ...applyEvents(state, action.events), replaying: false };
+      if (state.sessionId !== action.sessionId) return state;
+      return applyEvents(state, action.events, {
+        complete: action.complete,
+        highWatermark: action.highWatermark,
+      });
     case "event":
       return applyEvents(state, [action.event]);
     case "assistant_delta":
@@ -251,16 +333,27 @@ export function agentTranscriptReducer(
     case "runtime_status":
       return {
         ...state,
+        currentTurnId:
+          action.status === "idle" ||
+          action.status === "stopped" ||
+          action.status === "error"
+            ? undefined
+            : (action.turnId ?? state.currentTurnId),
         runtimeStatus: action.status,
         statusDetail: action.detail,
         // Reaching a terminal status drops any half-streamed buffers.
         ...(action.status === "idle" && { thinkingText: "" }),
       };
     case "permission_request":
-      return { ...state, pendingPermission: action.request };
+      return state.sessionId === action.sessionId
+        ? { ...state, pendingPermission: action.request }
+        : state;
     case "question_request":
-      return { ...state, pendingQuestion: action.request };
-    case "interaction_cleared": {
+      return state.sessionId === action.sessionId
+        ? { ...state, pendingQuestion: action.request }
+        : state;
+    case "interaction_resolved": {
+      if (state.sessionId !== action.sessionId) return state;
       const clearedPermission =
         state.pendingPermission?.interactionId === action.interactionId;
       const clearedQuestion =

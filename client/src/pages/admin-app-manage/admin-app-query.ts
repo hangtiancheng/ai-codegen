@@ -25,12 +25,12 @@ export const initialAdminAppFilters: AdminAppFilterValues = {
 
 export function buildAdminAppQuery(
   filters: AdminAppFilterValues,
-  pageNum: number,
+  pageNumber: number,
 ): AppQueryRequest {
   const id = optionalPositiveInteger(filters.id);
   const userId = optionalPositiveInteger(filters.userId);
   return appQueryRequestSchema.parse({
-    pageNum,
+    current: pageNumber,
     pageSize: adminAppPageSize,
     sortField: "createTime",
     sortOrder: "descend",

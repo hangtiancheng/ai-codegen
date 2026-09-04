@@ -6,7 +6,11 @@ import {
   renameAgentEntry,
   writeAgentFile,
 } from "@/shared/api";
-import type { AgentFileTreeNode, AppId } from "@/shared/schemas";
+import type {
+  AgentFileMutationResponse,
+  AgentFileTreeNode,
+  AppId,
+} from "@/shared/schemas";
 
 /**
  * Thin workspace-facing adapter over the shared Agent file-sync REST API. It
@@ -18,6 +22,7 @@ import type { AgentFileTreeNode, AppId } from "@/shared/schemas";
 export type SaveFileInput = {
   readonly path: string;
   readonly contents: string;
+  readonly encoding: "utf8" | "base64";
   /** Server hash of the base revision, or null when creating a new file. */
   readonly expectedHash: string | null;
 };
@@ -28,7 +33,7 @@ export type SaveFileResult =
       readonly status: "conflict";
       readonly path: string;
       readonly serverContents: string;
-      readonly serverHash: string;
+      readonly serverHash: string | null;
     };
 
 export function isSaveConflict(
@@ -50,7 +55,7 @@ export async function saveWorkspaceFile(
   const response = await writeAgentFile(appId, {
     path: input.path,
     contents: input.contents,
-    encoding: "utf8",
+    encoding: input.encoding,
     expectedHash: input.expectedHash,
   });
   if (isAgentFileConflictResponse(response)) {
@@ -72,26 +77,26 @@ export async function saveWorkspaceFile(
 export async function deleteWorkspacePath(
   appId: AppId,
   path: string,
-): Promise<boolean> {
-  const response = await deleteAgentEntry(appId, { path, recursive: true });
-  return response.status === "ok";
+  expectedHash: string | null | undefined,
+  recursive: boolean,
+): Promise<AgentFileMutationResponse> {
+  return deleteAgentEntry(appId, { path, expectedHash, recursive });
 }
 
 export async function renameWorkspacePath(
   appId: AppId,
   from: string,
   to: string,
-): Promise<boolean> {
-  const response = await renameAgentEntry(appId, { from, to });
-  return response.status === "ok";
+  expectedHash: string | null | undefined,
+): Promise<AgentFileMutationResponse> {
+  return renameAgentEntry(appId, { from, to, expectedHash });
 }
 
 export async function createWorkspaceDirectory(
   appId: AppId,
   path: string,
-): Promise<boolean> {
-  const response = await createAgentDirectory(appId, { path });
-  return response.status === "ok";
+): Promise<AgentFileMutationResponse> {
+  return createAgentDirectory(appId, { path });
 }
 
 async function readServerFileContents(

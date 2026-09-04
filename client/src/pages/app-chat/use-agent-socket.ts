@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch } from "react";
-import { z } from "zod";
-import { type AppId } from "@/shared/schemas";
+import {
+  agentServerMessageSchema,
+  type AgentClientMessage,
+  type AgentServerMessage,
+  type AgentWireTranscriptEvent,
+  type AppId,
+} from "@/shared/schemas";
 import { buildAgentSocketUrl } from "./agent-socket-url";
 import {
   type AgentConnectionState,
@@ -15,155 +20,46 @@ const reconnectMaximumDelayMs = 15_000;
 const heartbeatIntervalMs = 20_000;
 const heartbeatAckTimeoutMs = 10_000;
 
-// ---------------------------------------------------------------------------
-// Server -> client wire schemas (mirror server/src/agent-runtime/protocol.ts).
-// Payloads stay permissive; only the fields the client reads are validated.
-// ---------------------------------------------------------------------------
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
-const jsonSchema: z.ZodType<JsonValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonSchema),
-    z.record(z.string(), jsonSchema),
-  ]),
-);
+/** Normalizes an opaque protocol payload into a JSON-safe value. */
+const toJsonValue = (value: unknown): JsonValue => {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+  if (Array.isArray(value)) return value.map(toJsonValue);
+  if (isRecord(value)) {
+    const result: { [key: string]: JsonValue } = {};
+    for (const [key, item] of Object.entries(value))
+      result[key] = toJsonValue(item);
+    return result;
+  }
+  return null;
+};
 
-const wireEventSchema = z.object({
-  sessionId: z.string().optional(),
-  sequence: z.string(),
-  turnId: z.string().optional(),
-  kind: z.string().min(1),
-  payload: jsonSchema.optional(),
-  createdAt: z.string().optional(),
-});
-
-const runtimeStatusValues = [
-  "idle",
-  "running",
-  "waiting",
-  "stopped",
-  "error",
-] as const;
-
-const questionSchema = z.object({
-  question: z.string(),
-  header: z.string().default(""),
-  options: z
-    .array(z.object({ label: z.string(), description: z.string().optional() }))
-    .default([]),
-  multiSelect: z.boolean().default(false),
-});
-
-const serverMessageSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("ready"),
-    sessionId: z.string(),
-    readOnly: z.boolean(),
-    permissionMode: z.string(),
-    lastSequence: z.string(),
-  }),
-  z.object({
-    type: z.literal("candidates"),
-    candidates: z
-      .array(
-        z.object({
-          name: z.string(),
-          description: z.string().default(""),
-          aliases: z.array(z.string()).default([]),
-          type: z.string().default("prompt"),
-        }),
-      )
-      .default([]),
-  }),
-  z.object({
-    type: z.literal("transcript_batch"),
-    events: z.array(wireEventSchema).default([]),
-  }),
-  z.object({ type: z.literal("event"), event: wireEventSchema }),
-  z.object({
-    type: z.literal("assistant_delta"),
-    payload: z.object({ text: z.string() }),
-  }),
-  z.object({
-    type: z.literal("agent_status"),
-    payload: z.object({
-      phase: z.string().optional(),
-      text: z.string().optional(),
-      toolName: z.string().optional(),
-    }),
-  }),
-  z.object({
-    type: z.literal("runtime_status"),
-    status: z.enum(runtimeStatusValues),
-    sessionId: z.string().optional(),
-    turnId: z.string().optional(),
-    detail: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("permission_request"),
-    interactionId: z.string(),
-    sessionId: z.string().optional(),
-    turnId: z.string().optional(),
-    request: z.object({
-      toolName: z.string(),
-      args: jsonSchema.optional(),
-      reason: z.string().optional(),
-      description: z.string().optional(),
-    }),
-  }),
-  z.object({
-    type: z.literal("question_request"),
-    interactionId: z.string(),
-    sessionId: z.string().optional(),
-    turnId: z.string().optional(),
-    questions: z.array(questionSchema).default([]),
-  }),
-  z.object({
-    type: z.literal("command_result"),
-    command: z.string(),
-    requestId: z.string().optional(),
-    supported: z.boolean(),
-    result: jsonSchema.optional(),
-    error: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("files_changed"),
-    paths: z.array(z.string()).default([]),
-    revision: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("error"),
-    code: z.string().optional(),
-    message: z.string(),
-    recoverable: z.boolean().optional(),
-    requestId: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("heartbeat_ack"),
-    timestamp: z.number().optional(),
-    requestId: z.string().optional(),
-  }),
-]);
-
-type ServerMessage = z.infer<typeof serverMessageSchema>;
+type WireQuestion = Extract<
+  AgentServerMessage,
+  { type: "question_request" }
+>["questions"][number];
 
 const toTranscriptEvent = (
-  event: z.infer<typeof wireEventSchema>,
+  event: AgentWireTranscriptEvent,
 ): AgentTranscriptEvent => ({
   sequence: event.sequence,
   sessionId: event.sessionId,
   turnId: event.turnId,
   kind: event.kind,
-  payload: event.payload ?? null,
+  payload: toJsonValue(event.payload),
   createdAt: event.createdAt,
 });
 
-const toQuestion = (
-  question: z.infer<typeof questionSchema>,
-): AgentQuestion => ({
+const toQuestion = (question: WireQuestion): AgentQuestion => ({
   question: question.question,
   header: question.header,
   options: question.options.map((option) => ({
@@ -188,44 +84,6 @@ export type AgentRunOptions = {
 export type PermissionDecision = "allow" | "deny" | "allowAlways";
 export type QuestionAnswers = Record<string, string | string[]>;
 
-type ClientMessage =
-  | {
-      readonly type: "hello";
-      readonly requestId: string;
-      readonly afterSequence: string;
-    }
-  | {
-      readonly type: "run";
-      readonly requestId: string;
-      readonly input: string;
-      readonly selectedElement?: AgentSelectedElement;
-      readonly previewError?: string;
-      readonly clientFileRevision?: string;
-    }
-  | {
-      readonly type: "abort";
-      readonly requestId: string;
-      readonly turnId?: string;
-    }
-  | {
-      readonly type: "permission_response";
-      readonly requestId: string;
-      readonly interactionId: string;
-      readonly decision: "allow" | "deny";
-      readonly remember?: boolean;
-    }
-  | {
-      readonly type: "question_response";
-      readonly requestId: string;
-      readonly interactionId: string;
-      readonly answers: QuestionAnswers;
-    }
-  | {
-      readonly type: "heartbeat";
-      readonly requestId: string;
-      readonly timestamp: number;
-    };
-
 const newRequestId = (): string =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -234,6 +92,7 @@ const newRequestId = (): string =>
 export type UseAgentSocketOptions = {
   readonly appId: AppId | undefined;
   readonly enabled?: boolean;
+  readonly sessionId: string | undefined;
   readonly lastSequence: string;
   readonly dispatch: Dispatch<AgentTranscriptAction>;
 };
@@ -257,6 +116,7 @@ export type UseAgentSocketResult = {
 export function useAgentSocket({
   appId,
   enabled = true,
+  sessionId,
   lastSequence,
   dispatch,
 }: UseAgentSocketOptions): UseAgentSocketResult {
@@ -276,12 +136,14 @@ export function useAgentSocket({
   const manualDisconnectRef = useRef(false);
   const mountedRef = useRef(false);
   const generationRef = useRef(0);
+  const sessionIdRef = useRef(sessionId);
   const lastSequenceRef = useRef(lastSequence);
   const connectRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
+    sessionIdRef.current = sessionId;
     lastSequenceRef.current = lastSequence;
-  }, [lastSequence]);
+  }, [lastSequence, sessionId]);
 
   const transition = useCallback(
     (next: AgentConnectionState): void => {
@@ -309,7 +171,7 @@ export function useAgentSocket({
     reconnectTimerRef.current = undefined;
   }, []);
 
-  const sendNow = useCallback((message: ClientMessage): boolean => {
+  const sendNow = useCallback((message: AgentClientMessage): boolean => {
     const socket = socketRef.current;
     if (socket?.readyState !== WebSocket.OPEN) return false;
     socket.send(JSON.stringify(message));
@@ -317,19 +179,58 @@ export function useAgentSocket({
   }, []);
 
   const handleMessage = useCallback(
-    (message: ServerMessage): void => {
+    (message: AgentServerMessage): void => {
       switch (message.type) {
-        case "ready":
+        case "ready": {
+          const afterSequence =
+            sessionIdRef.current === message.sessionId
+              ? lastSequenceRef.current
+              : "0";
+          const permission = message.pendingInteractions.find(
+            (interaction) => interaction.type === "permission",
+          );
+          const question = message.pendingInteractions.find(
+            (interaction) => interaction.type === "question",
+          );
           reconnectAttemptRef.current = 0;
           transition("connected");
           dispatch({
             type: "ready",
-            sessionId: message.sessionId,
-            readOnly: message.readOnly,
+            currentTurnId: message.currentTurnId ?? undefined,
+            highWatermark: message.highWatermark,
+            pendingPermission:
+              permission?.type === "permission"
+                ? {
+                    args: toJsonValue(permission.request.args ?? null),
+                    description: permission.request.description,
+                    interactionId: permission.interactionId,
+                    reason: permission.request.reason,
+                    toolName: permission.request.toolName,
+                    turnId: permission.turnId,
+                  }
+                : undefined,
+            pendingQuestion:
+              question?.type === "question"
+                ? {
+                    interactionId: question.interactionId,
+                    questions: question.questions.map(toQuestion),
+                    turnId: question.turnId,
+                  }
+                : undefined,
             permissionMode: message.permissionMode,
-            lastSequence: message.lastSequence,
+            readOnly: message.readOnly,
+            runtimeStatus: message.runtimeStatus,
+            sessionId: message.sessionId,
+          });
+          sessionIdRef.current = message.sessionId;
+          if (afterSequence === "0") lastSequenceRef.current = "0";
+          sendNow({
+            afterSequence,
+            requestId: newRequestId(),
+            type: "hello",
           });
           return;
+        }
         case "candidates":
           dispatch({
             type: "candidates",
@@ -344,19 +245,28 @@ export function useAgentSocket({
         case "transcript_batch":
           dispatch({
             type: "transcript_batch",
+            complete: message.complete,
             events: message.events.map(toTranscriptEvent),
+            highWatermark: message.highWatermark,
+            sessionId: message.sessionId,
           });
           return;
         case "event":
           dispatch({ type: "event", event: toTranscriptEvent(message.event) });
           return;
         case "assistant_delta":
-          dispatch({ type: "assistant_delta", text: message.payload.text });
+          if (
+            isRecord(message.payload) &&
+            typeof message.payload.text === "string"
+          ) {
+            dispatch({ type: "assistant_delta", text: message.payload.text });
+          }
           return;
         case "agent_status":
           if (
+            isRecord(message.payload) &&
             message.payload.phase === "thinking" &&
-            message.payload.text !== undefined
+            typeof message.payload.text === "string"
           ) {
             dispatch({ type: "thinking_delta", text: message.payload.text });
           }
@@ -365,6 +275,7 @@ export function useAgentSocket({
           dispatch({
             type: "runtime_status",
             status: message.status,
+            turnId: message.turnId,
             detail: message.detail,
           });
           return;
@@ -375,10 +286,11 @@ export function useAgentSocket({
               interactionId: message.interactionId,
               turnId: message.turnId,
               toolName: message.request.toolName,
-              args: message.request.args ?? null,
+              args: toJsonValue(message.request.args ?? null),
               description: message.request.description,
               reason: message.request.reason,
             },
+            sessionId: message.sessionId,
           });
           return;
         case "question_request":
@@ -389,6 +301,14 @@ export function useAgentSocket({
               turnId: message.turnId,
               questions: message.questions.map(toQuestion),
             },
+            sessionId: message.sessionId,
+          });
+          return;
+        case "interaction_resolved":
+          dispatch({
+            type: "interaction_resolved",
+            interactionId: message.interactionId,
+            sessionId: message.sessionId,
           });
           return;
         case "command_result":
@@ -398,7 +318,10 @@ export function useAgentSocket({
               command: message.command,
               requestId: message.requestId,
               supported: message.supported,
-              result: message.result,
+              result:
+                message.result === undefined
+                  ? undefined
+                  : toJsonValue(message.result),
               error: message.error,
             },
           });
@@ -421,7 +344,7 @@ export function useAgentSocket({
           return;
       }
     },
-    [dispatch, transition],
+    [dispatch, sendNow, transition],
   );
 
   const startHeartbeat = useCallback(
@@ -516,13 +439,6 @@ export function useAgentSocket({
     socket.addEventListener("open", () => {
       if (generationRef.current !== generation) return;
       transition("handshaking");
-      socket.send(
-        JSON.stringify({
-          type: "hello",
-          requestId: newRequestId(),
-          afterSequence: lastSequenceRef.current,
-        }),
-      );
       startHeartbeat(socket, generation);
     });
     socket.addEventListener("message", (event: MessageEvent<unknown>) => {
@@ -534,7 +450,7 @@ export function useAgentSocket({
       } catch {
         return;
       }
-      const result = serverMessageSchema.safeParse(parsed);
+      const result = agentServerMessageSchema.safeParse(parsed);
       if (result.success) handleMessage(result.data);
     });
     socket.addEventListener("error", () => {

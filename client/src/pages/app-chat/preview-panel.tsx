@@ -12,6 +12,7 @@ export type PreviewPanelProps = {
   readonly logs: string;
   readonly onIframeLoad: () => void;
   readonly onRefresh: () => void;
+  readonly onRetry: () => void;
   readonly onToggleEditMode: () => void;
   readonly previewUrl: string | undefined;
   readonly status: PreviewStatus;
@@ -26,6 +27,7 @@ export function PreviewPanel({
   logs,
   onIframeLoad,
   onRefresh,
+  onRetry,
   onToggleEditMode,
   previewUrl,
   status,
@@ -78,7 +80,12 @@ export function PreviewPanel({
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
           />
         ) : (
-          <PreviewPlaceholder error={error} logs={logs} status={status} />
+          <PreviewPlaceholder
+            error={error}
+            logs={logs}
+            onRetry={onRetry}
+            status={status}
+          />
         )}
       </div>
     </section>
@@ -88,10 +95,12 @@ export function PreviewPanel({
 function PreviewPlaceholder({
   error,
   logs,
+  onRetry,
   status,
 }: {
   readonly error: string | undefined;
   readonly logs: string;
+  readonly onRetry: () => void;
   readonly status: PreviewStatus;
 }): ReactNode {
   if (status === "failed") {
@@ -105,6 +114,15 @@ function PreviewPlaceholder({
             {logs}
           </pre>
         ) : null}
+        <Button
+          variant="outline"
+          size="sm"
+          className="self-start"
+          onClick={onRetry}
+        >
+          <RefreshCw className="size-4" aria-hidden="true" />
+          Retry
+        </Button>
       </div>
     );
   }

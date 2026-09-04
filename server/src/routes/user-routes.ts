@@ -69,11 +69,11 @@ export const createUserRoutes = ({ sessionStore, userService }: UserRoutesDeps) 
     })
     .post("/list/page/vo", requireAdmin, zValidator("json", userPageQuerySchema), async (c) => {
       const result = await userService.listUserVoByPage(c.req.valid("json"));
-      const records = result.records.map((r) => ({
-        ...r,
-        createTime: r.createTime.toISOString(),
+      const records = result.records.map((record) => ({
+        ...record,
+        createTime: record.createTime.toISOString(),
       }));
-      return c.json(createSuccessResponse({ records, total: result.total }));
+      return c.json(createSuccessResponse({ ...result, records }));
     });
 
 export type UserRoutes = ReturnType<typeof createUserRoutes>;

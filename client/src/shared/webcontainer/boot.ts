@@ -4,7 +4,7 @@ let bootPromise: Promise<WebContainer> | undefined;
 
 export function getWebContainer(): Promise<WebContainer> {
   if (bootPromise !== undefined) return bootPromise;
-  if (!globalThis.crossOriginIsolated) {
+  if (Reflect.get(globalThis, "crossOriginIsolated") !== true) {
     return Promise.reject(
       new Error(
         "WebContainer requires cross-origin isolation. Reload after enabling COOP/COEP headers.",

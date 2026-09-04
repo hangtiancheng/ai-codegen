@@ -84,16 +84,19 @@ export type WorkspaceController = {
   readonly setActivePath: (path: string) => void;
   readonly getFileState: (path: string) => WorkspaceFileState | undefined;
   readonly updateFileContents: (path: string, contents: string) => void;
-  readonly saveFile: (path: string) => void;
-  readonly saveAll: () => void;
-  readonly createFile: (parentDir: string, name: string) => void;
-  readonly createDirectory: (parentDir: string, name: string) => void;
-  readonly renamePath: (from: string, to: string) => void;
-  readonly deletePath: (path: string) => void;
+  readonly saveFile: (path: string) => Promise<void>;
+  readonly saveAll: () => Promise<void>;
+  readonly createFile: (parentDir: string, name: string) => Promise<void>;
+  readonly createDirectory: (parentDir: string, name: string) => Promise<void>;
+  readonly renamePath: (from: string, to: string) => Promise<void>;
+  readonly deletePath: (path: string) => Promise<void>;
 
   // Conflict resolution.
-  readonly acceptAgentChanges: (path: string) => void;
-  readonly keepLocalChanges: (path: string) => void;
+  readonly acceptAgentChanges: (path: string) => Promise<void>;
+  readonly keepLocalChanges: (
+    path: string,
+    currentContents?: string,
+  ) => Promise<void>;
 
   // Integrated terminal.
   readonly attachTerminal: (surface: TerminalSurface) => TerminalHandle;

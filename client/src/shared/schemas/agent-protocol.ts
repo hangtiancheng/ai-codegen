@@ -671,7 +671,7 @@ export const agentFileWriteRequestSchema = z.object({
   path: agentFilePathSchema,
   contents: z.string(),
   encoding: agentFileEncodingSchema,
-  expectedHash: z.string().nullable(),
+  expectedHash: z.string().nullable().optional(),
 });
 export type AgentFileWriteRequest = z.infer<typeof agentFileWriteRequestSchema>;
 
@@ -711,7 +711,7 @@ export type AgentFileMutationResult = z.infer<
 export const agentFileConflictSchema = z.object({
   path: z.string().min(1),
   expectedHash: z.string().nullable(),
-  actualHash: z.string().min(1),
+  actualHash: z.string().min(1).nullable(),
   message: z.string().optional(),
 });
 export type AgentFileConflict = z.infer<typeof agentFileConflictSchema>;
@@ -786,222 +786,292 @@ export const agentPreviewErrorSchema = z.object({
 });
 export type AgentPreviewError = z.infer<typeof agentPreviewErrorSchema>;
 
-export const agentClientMessageSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("hello"),
-    lastSequence: agentSequenceSchema.optional(),
-  }),
-  z.object({
-    type: z.literal("run"),
-    requestId: z.string().min(1),
-    input: z.string(),
-    selectedElement: agentSelectedElementSchema.optional(),
-    previewError: agentPreviewErrorSchema.optional(),
-    clientFileRevision: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("abort"),
-    turnId: agentTurnIdSchema,
-  }),
-  z.object({
-    type: z.literal("permission_response"),
-    interactionId: agentInteractionIdSchema,
-    decision: agentPermissionDecisionSchema,
-  }),
-  z.object({
-    type: z.literal("question_response"),
-    interactionId: agentInteractionIdSchema,
-    answers: z.array(agentQuestionAnswerSchema),
-  }),
-  z.object({
-    type: z.literal("command_complete"),
-    requestId: z.string().min(1),
-    prefix: z.string(),
-  }),
-  z.object({
-    type: z.literal("runtime_action"),
-    action: agentRuntimeActionSchema,
-    payload: jsonValueSchema.optional(),
-  }),
-  z.object({
-    type: z.literal("heartbeat"),
-    timestamp: z.number(),
-  }),
+const agentWireRequestIdSchema = z.string().min(1).max(128);
+const agentWireObjectSchema = z.record(z.string(), z.unknown());
+const agentWireRuntimeStatusSchema = z.enum([
+  "idle",
+  "running",
+  "waiting",
+  "stopped",
+  "error",
 ]);
-export type AgentClientMessage = z.infer<typeof agentClientMessageSchema>;
+
+const agentWirePermissionRequestSchema = z
+  .object({
+    toolName: z.string(),
+    args: z.unknown().optional(),
+    reason: z.string().optional(),
+    description: z.string().optional(),
+  })
+  .strict();
+
+const agentWireQuestionSchema = z
+  .object({
+    question: z.string(),
+    header: z.string(),
+    options: z.array(
+      z
+        .object({
+          label: z.string(),
+          description: z.string().optional(),
+        })
+        .strict(),
+    ),
+    multiSelect: z.boolean(),
+  })
+  .strict();
+
+const agentWireCommandCandidateSchema = z
+  .object({
+    name: z.string(),
+    description: z.string(),
+    aliases: z.array(z.string()),
+    type: z.string(),
+  })
+  .strict();
+
+export const agentPendingInteractionWireSchema = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("permission"),
+      interactionId: agentInteractionIdSchema,
+      sessionId: agentSessionIdSchema,
+      turnId: agentTurnIdSchema.optional(),
+      request: agentWirePermissionRequestSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("question"),
+      interactionId: agentInteractionIdSchema,
+      sessionId: agentSessionIdSchema,
+      turnId: agentTurnIdSchema.optional(),
+      questions: z.array(agentWireQuestionSchema),
+    })
+    .strict(),
+]);
+export type AgentPendingInteractionWire = z.infer<
+  typeof agentPendingInteractionWireSchema
+>;
+
+export const agentClientMessageSchema = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("hello"),
+      requestId: agentWireRequestIdSchema.optional(),
+      afterSequence: agentSequenceSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("run"),
+      requestId: agentWireRequestIdSchema,
+      input: z.string().min(1).max(50_000),
+      selectedElement: agentWireObjectSchema.optional(),
+      previewError: z.string().max(20_000).optional(),
+      clientFileRevision: z.string().max(128).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("abort"),
+      requestId: agentWireRequestIdSchema,
+      turnId: agentTurnIdSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("permission_response"),
+      requestId: agentWireRequestIdSchema,
+      interactionId: agentInteractionIdSchema,
+      decision: z.enum(["allow", "deny"]),
+      remember: z.boolean().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("question_response"),
+      requestId: agentWireRequestIdSchema,
+      interactionId: agentInteractionIdSchema,
+      answers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("command_complete"),
+      requestId: agentWireRequestIdSchema,
+      commandId: agentWireRequestIdSchema,
+      exitCode: z.number().int(),
+      output: z.string().max(1_000_000),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("runtime_action"),
+      requestId: agentWireRequestIdSchema,
+      action: z.enum(["start", "stop", "restart", "install"]),
+      command: z.string().max(10_000).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("heartbeat"),
+      requestId: agentWireRequestIdSchema.optional(),
+      timestamp: z.number().int().nonnegative(),
+    })
+    .strict(),
+]);
+export type AgentClientMessage = z.input<typeof agentClientMessageSchema>;
 
 // ---------------------------------------------------------------------------
 // Server -> Client WebSocket messages
 // ---------------------------------------------------------------------------
 
-/** Fields present on every event the server persists to the transcript. */
-const persistedEventShape = {
-  sessionId: agentSessionIdSchema,
-  sequence: agentSequenceSchema,
-  turnId: agentTurnIdSchema.optional(),
-};
+const agentWireTranscriptEventSchema = z
+  .object({
+    sessionId: agentSessionIdSchema,
+    sequence: agentSequenceSchema,
+    turnId: agentTurnIdSchema.optional(),
+    kind: z.string().min(1).max(128),
+    payload: z.unknown(),
+    createdAt: z.iso.datetime(),
+  })
+  .strict();
 
-export const agentServerMessageSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("ready"),
-    capabilities: agentCapabilitiesSchema,
-    runtimeStatus: agentRuntimeStatusSchema,
-    currentSessionId: agentSessionIdSchema.nullable(),
-    lastSequence: agentSequenceSchema,
-  }),
-  z.object({
-    type: z.literal("transcript_batch"),
-    events: z.array(agentTranscriptEventSchema),
-  }),
-  z.object({
-    type: z.literal("user_message"),
-    ...persistedEventShape,
-    text: z.string(),
-  }),
-  z.object({
-    type: z.literal("stream_text"),
-    ...persistedEventShape,
-    delta: z.string(),
-  }),
-  z.object({
-    type: z.literal("thinking_text"),
-    ...persistedEventShape,
-    delta: z.string(),
-  }),
-  z.object({
-    type: z.literal("thinking_complete"),
-    ...persistedEventShape,
-    signature: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("tool_use"),
-    ...persistedEventShape,
-    toolCallId: z.string().min(1),
-    toolName: z.string().min(1),
-    title: z.string().optional(),
-    args: jsonValueSchema,
-  }),
-  z.object({
-    type: z.literal("tool_result"),
-    ...persistedEventShape,
-    toolCallId: z.string().min(1),
-    toolName: z.string().min(1),
-    isError: z.boolean().optional(),
-    result: jsonValueSchema.optional(),
-    summary: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("usage"),
-    ...persistedEventShape,
-    usage: agentUsageSchema,
-  }),
-  z.object({
-    type: z.literal("turn_complete"),
-    ...persistedEventShape,
-    stopReason: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("loop_complete"),
-    ...persistedEventShape,
-  }),
-  z.object({
-    type: z.literal("subagent_event"),
-    ...persistedEventShape,
-    agentId: z.string().min(1),
-    agentType: z.string().optional(),
-    phase: z.string().optional(),
-    payload: jsonValueSchema,
-  }),
-  z.object({
-    type: z.literal("background_agent_event"),
-    ...persistedEventShape,
-    agentId: z.string().min(1),
-    status: z.string().optional(),
-    payload: jsonValueSchema,
-  }),
-  z.object({
-    type: z.literal("team_event"),
-    ...persistedEventShape,
-    teamName: z.string().min(1),
-    event: z.string().optional(),
-    payload: jsonValueSchema,
-  }),
-  z.object({
-    type: z.literal("task_event"),
-    ...persistedEventShape,
-    taskId: agentTaskIdSchema,
-    status: agentTaskStatusSchema.optional(),
-    payload: jsonValueSchema,
-  }),
-  z.object({
-    type: z.literal("compact"),
-    ...persistedEventShape,
-    reason: z.string().optional(),
-    beforeTokens: nonNegativeIntSchema.optional(),
-    afterTokens: nonNegativeIntSchema.optional(),
-  }),
-  z.object({
-    type: z.literal("retry"),
-    ...persistedEventShape,
-    attempt: positiveIntSchema,
-    reason: z.string().optional(),
-    delayMs: nonNegativeIntSchema.optional(),
-  }),
-  z.object({
-    type: z.literal("files_changed"),
-    ...persistedEventShape,
-    changes: z.array(agentFileChangeSchema),
-  }),
-  z.object({
-    type: z.literal("skill_activated"),
-    ...persistedEventShape,
-    skillName: z.string().min(1),
-    slashCommand: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("permission_request"),
-    ...persistedEventShape,
-    interactionId: agentInteractionIdSchema,
-    toolName: z.string().min(1),
-    args: jsonValueSchema,
-    reason: z.string().optional(),
-    expiresAt: isoTimestampSchema.optional(),
-  }),
-  z.object({
-    type: z.literal("question_request"),
-    ...persistedEventShape,
-    interactionId: agentInteractionIdSchema,
-    questions: z.array(agentQuestionSchema),
-    expiresAt: isoTimestampSchema.optional(),
-  }),
-  z.object({
-    type: z.literal("command_candidates"),
-    requestId: z.string().min(1),
-    prefix: z.string(),
-    candidates: z.array(agentCommandSchema),
-  }),
-  z.object({
-    type: z.literal("command_result"),
-    requestId: z.string().optional(),
-    commandName: z.string().optional(),
-    display: z.string().optional(),
-    data: jsonValueSchema.optional(),
-  }),
-  z.object({
-    type: z.literal("runtime_status"),
-    runtimeStatus: agentRuntimeStatusSchema,
+const structuredAgentEventSchema = z
+  .object({
+    type: z.enum([
+      "agent_status",
+      "assistant_delta",
+      "assistant_message",
+      "tool_use",
+      "tool_result",
+      "usage",
+      "turn_complete",
+    ]),
     sessionId: agentSessionIdSchema.optional(),
-    detail: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("error"),
-    code: z.number().int().optional(),
-    message: z.string().min(1),
-    detail: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal("heartbeat_ack"),
-    timestamp: z.number(),
-  }),
+    sequence: agentSequenceSchema.optional(),
+    turnId: agentTurnIdSchema.optional(),
+    payload: z.unknown(),
+  })
+  .strict();
+
+export const agentServerMessageSchema = z.union([
+  z
+    .object({
+      type: z.literal("ready"),
+      sessionId: agentSessionIdSchema,
+      highWatermark: agentSequenceSchema,
+      readOnly: z.boolean(),
+      permissionMode: z.string(),
+      runtimeStatus: agentWireRuntimeStatusSchema,
+      currentTurnId: agentTurnIdSchema.nullable(),
+      pendingInteractions: z.array(agentPendingInteractionWireSchema),
+    })
+    .strict(),
+  z
+    .object({ type: z.literal("event"), event: agentWireTranscriptEventSchema })
+    .strict(),
+  z
+    .object({
+      type: z.literal("transcript_batch"),
+      sessionId: agentSessionIdSchema,
+      highWatermark: agentSequenceSchema,
+      complete: z.boolean(),
+      events: z.array(agentWireTranscriptEventSchema).max(1_000),
+    })
+    .strict(),
+  structuredAgentEventSchema,
+  z
+    .object({
+      type: z.literal("permission_request"),
+      interactionId: agentInteractionIdSchema,
+      sessionId: agentSessionIdSchema,
+      turnId: agentTurnIdSchema.optional(),
+      request: agentWirePermissionRequestSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("question_request"),
+      interactionId: agentInteractionIdSchema,
+      sessionId: agentSessionIdSchema,
+      turnId: agentTurnIdSchema.optional(),
+      questions: z.array(agentWireQuestionSchema),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("interaction_resolved"),
+      interactionId: agentInteractionIdSchema,
+      sessionId: agentSessionIdSchema,
+      outcome: z.enum([
+        "allowed",
+        "denied",
+        "answered",
+        "cancelled",
+        "expired",
+      ]),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("command_result"),
+      requestId: agentWireRequestIdSchema.optional(),
+      command: z.string(),
+      supported: z.boolean(),
+      result: z.unknown().optional(),
+      error: z.string().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("candidates"),
+      requestId: agentWireRequestIdSchema.optional(),
+      candidates: z.array(agentWireCommandCandidateSchema),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.enum(["skill", "subagent", "team", "task"]),
+      action: z.string(),
+      payload: z.unknown(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("runtime_status"),
+      status: agentWireRuntimeStatusSchema,
+      sessionId: agentSessionIdSchema.optional(),
+      turnId: agentTurnIdSchema.optional(),
+      detail: z.string().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("files_changed"),
+      paths: z.array(z.string()),
+      revision: z.string().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("error"),
+      requestId: agentWireRequestIdSchema.optional(),
+      code: z.string(),
+      message: z.string(),
+      recoverable: z.boolean(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("heartbeat_ack"),
+      requestId: agentWireRequestIdSchema.optional(),
+      timestamp: z.number().int().nonnegative(),
+    })
+    .strict(),
 ]);
 export type AgentServerMessage = z.infer<typeof agentServerMessageSchema>;
+export type AgentWireTranscriptEvent = z.infer<
+  typeof agentWireTranscriptEventSchema
+>;

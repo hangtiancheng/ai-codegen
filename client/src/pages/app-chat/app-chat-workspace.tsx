@@ -29,6 +29,7 @@ export function AppChatWorkspace({ app }: { readonly app: AppVo }): ReactNode {
   const { state, dispatch } = useAgentTranscript();
   const socket = useAgentSocket({
     appId: app.id,
+    sessionId: state.sessionId,
     lastSequence: state.lastSequence,
     dispatch,
   });
@@ -44,13 +45,18 @@ export function AppChatWorkspace({ app }: { readonly app: AppVo }): ReactNode {
         onEdit={() => navigate(`/app/edit/${app.id}`)}
         onDownload={() => handleChatDownload(app, setDownloading)}
       />
-      <WorkspaceProvider appId={app.id} enabled agentRunning={agentRunning}>
+      <WorkspaceProvider
+        appId={app.id}
+        enabled
+        agentRunning={agentRunning}
+        filesRevision={state.filesRevision}
+      >
         <Group orientation="horizontal" className="min-h-0 flex-1">
           <Panel defaultSize="42" minSize="26">
             <ChatPane
               appId={app.id}
               state={state}
-              canRun={canManage}
+              canRun={canManage && !state.replaying}
               run={socket.run}
               abort={socket.abort}
               respondPermission={socket.respondPermission}
@@ -66,7 +72,7 @@ export function AppChatWorkspace({ app }: { readonly app: AppVo }): ReactNode {
             <WorkspacePanel
               className="h-full"
               canEdit={isOwner}
-              canFix={canManage}
+              canFix={canManage && !state.replaying}
               onFixError={(error) => {
                 socket.run(buildPreviewFixPrompt(error), {
                   previewError: error.message,

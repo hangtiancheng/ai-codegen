@@ -1,5 +1,6 @@
 import { AlertTriangle, X } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { cn } from "@/shared/lib";
 import type { AppId, VisualEditorElementInfo } from "@/shared/schemas";
 import { useWorkspace } from "./workspace";
@@ -59,16 +60,29 @@ export function ChatPane({
   const workspace = useWorkspace();
   const [input, setInput] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const busy = isAgentBusy(state.runtimeStatus);
   const connected = state.connectionState === "connected";
   const lastCommand = state.commandResults.at(-1);
 
-  const handleSend = (): void => {
+  const handleSend = async (): Promise<void> => {
     const text = input.trim();
-    if (text.length === 0 || !canRun || busy || !connected) return;
+    if (
+      text.length === 0 ||
+      !canRun ||
+      busy ||
+      !connected ||
+      submittingRef.current
+    ) {
+      return;
+    }
     const selected = workspace.selectedElement;
-    workspace.saveAll();
-    void workspace.flushTerminalSync().finally(() => {
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      await workspace.flushTerminalSync();
+      await workspace.saveAll();
       const ok = run(
         text,
         selected === undefined ? {} : { selectedElement: selected },
@@ -76,24 +90,37 @@ export function ChatPane({
       if (ok) {
         setInput("");
         workspace.clearSelection();
+      } else {
+        toast.error("Unable to start the agent run");
       }
-    });
+    } catch (cause) {
+      toast.error(
+        cause instanceof Error
+          ? cause.message
+          : "Workspace changes failed to save",
+      );
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
   };
 
   const handlePermission = (
     interactionId: string,
     decision: PermissionDecision,
   ): void => {
-    respondPermission(interactionId, decision);
-    dispatch({ type: "interaction_cleared", interactionId });
+    if (!respondPermission(interactionId, decision)) {
+      toast.error("Unable to send the permission response");
+    }
   };
 
   const handleQuestion = (
     interactionId: string,
     answers: QuestionAnswers,
   ): void => {
-    respondQuestion(interactionId, answers);
-    dispatch({ type: "interaction_cleared", interactionId });
+    if (!respondQuestion(interactionId, answers)) {
+      toast.error("Unable to send the answer");
+    }
   };
 
   return (
@@ -161,7 +188,7 @@ export function ChatPane({
           onAbort={abort}
           candidates={state.candidates}
           running={busy}
-          readOnly={!canRun || state.readOnly}
+          readOnly={!canRun || state.readOnly || submitting}
           connected={connected}
           selectedElementLabel={
             workspace.selectedElement === undefined

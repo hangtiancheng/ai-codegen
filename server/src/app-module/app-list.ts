@@ -1,3 +1,4 @@
+import { createPageResponse, type PageResponse } from "../common/index.js";
 import { toAppVo } from "./app.mapper.js";
 import type { AppPageQuery, AppVo } from "./app.schema.js";
 import { buildAppListFilter } from "./app-filter.js";
@@ -6,10 +7,7 @@ import { resolveAppSortField } from "./app-sorting.js";
 
 export const createListAppVoByPageOperation =
   (appRepository: AppRepository) =>
-  async (
-    query: AppPageQuery,
-    overrides: AppListFilter = {},
-  ): Promise<{ records: AppVo[]; total: number }> => {
+  async (query: AppPageQuery, overrides: AppListFilter = {}): Promise<PageResponse<AppVo>> => {
     const filter: AppListFilter = {
       ...buildAppListFilter(query),
       ...overrides,
@@ -26,5 +24,5 @@ export const createListAppVoByPageOperation =
       }),
       appRepository.countActive(filter),
     ]);
-    return { records: apps.map(toAppVo), total };
+    return createPageResponse(apps.map(toAppVo), query, total);
   };

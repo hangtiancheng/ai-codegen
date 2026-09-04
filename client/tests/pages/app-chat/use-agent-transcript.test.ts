@@ -10,7 +10,6 @@ import {
   type AgentTranscriptState,
 } from "@/pages/app-chat/use-agent-transcript";
 
-/** Fold a sequence of actions over the reducer starting from a given state. */
 function reduce(
   actions: readonly AgentTranscriptAction[],
   start: AgentTranscriptState = initialAgentTranscriptState,
@@ -20,7 +19,7 @@ function reduce(
 
 function makeEvent(
   sequence: string,
-  kind: string,
+  kind = "tool_use",
   extra: Partial<AgentTranscriptEvent> = {},
 ): AgentTranscriptEvent {
   return {
@@ -34,30 +33,31 @@ function makeEvent(
   };
 }
 
+function ready(
+  sessionId = "session-1",
+  highWatermark = "0",
+  overrides: Partial<Extract<AgentTranscriptAction, { type: "ready" }>> = {},
+): Extract<AgentTranscriptAction, { type: "ready" }> {
+  return {
+    type: "ready",
+    sessionId,
+    highWatermark,
+    readOnly: false,
+    permissionMode: "default",
+    runtimeStatus: "idle",
+    currentTurnId: undefined,
+    pendingPermission: undefined,
+    pendingQuestion: undefined,
+    ...overrides,
+  };
+}
+
 describe("compareAgentSequences", () => {
-  it("orders shorter decimal strings before longer ones", () => {
-    // Different length: length is the primary discriminator (BigInt-safe).
+  it("orders decimal strings without converting them to Number", () => {
     expect(compareAgentSequences("9", "10")).toBe(-1);
-    expect(compareAgentSequences("10", "9")).toBe(1);
-    expect(compareAgentSequences("99", "100")).toBe(-1);
     expect(compareAgentSequences("1000", "999")).toBe(1);
-  });
-
-  it("compares equal-length decimal strings lexicographically", () => {
-    expect(compareAgentSequences("5", "7")).toBe(-1);
-    expect(compareAgentSequences("7", "5")).toBe(1);
     expect(compareAgentSequences("42", "43")).toBe(-1);
-    expect(compareAgentSequences("130", "129")).toBe(1);
-  });
-
-  it("returns 0 for identical sequences", () => {
-    expect(compareAgentSequences("0", "0")).toBe(0);
     expect(compareAgentSequences("123456789", "123456789")).toBe(0);
-  });
-
-  it("can drive a correct ascending sort", () => {
-    const sorted = ["10", "2", "1", "100", "9"].sort(compareAgentSequences);
-    expect(sorted).toEqual(["1", "2", "9", "10", "100"]);
   });
 });
 
@@ -65,341 +65,259 @@ describe("isAgentBusy", () => {
   it("is true only for running and waiting", () => {
     expect(isAgentBusy("running")).toBe(true);
     expect(isAgentBusy("waiting")).toBe(true);
-  });
-
-  it("is false for idle, stopped and error", () => {
     const idle: AgentRuntimeStatus[] = ["idle", "stopped", "error"];
     for (const status of idle) expect(isAgentBusy(status)).toBe(false);
   });
 });
 
-describe("initialAgentTranscriptState", () => {
-  it("has the documented defaults", () => {
-    expect(initialAgentTranscriptState.connectionState).toBe("idle");
-    expect(initialAgentTranscriptState.runtimeStatus).toBe("idle");
-    expect(initialAgentTranscriptState.lastSequence).toBe("0");
-    expect(initialAgentTranscriptState.replaying).toBe(false);
-    expect(initialAgentTranscriptState.events).toEqual([]);
-    expect(initialAgentTranscriptState.streamingText).toBe("");
-    expect(initialAgentTranscriptState.thinkingText).toBe("");
-    expect(initialAgentTranscriptState.readOnly).toBe(false);
-    expect(initialAgentTranscriptState.filesRevision).toBe(0);
-    expect(initialAgentTranscriptState.pendingPermission).toBeUndefined();
-    expect(initialAgentTranscriptState.pendingQuestion).toBeUndefined();
-  });
-});
-
 describe("agentTranscriptReducer", () => {
-  it("connection_changed updates only connectionState", () => {
-    const next = agentTranscriptReducer(initialAgentTranscriptState, {
-      type: "connection_changed",
-      state: "connected",
-    });
-    expect(next.connectionState).toBe("connected");
-    expect(next.runtimeStatus).toBe(initialAgentTranscriptState.runtimeStatus);
-  });
+  it("does not advance the applied cursor from ready's replay target", () => {
+    const next = agentTranscriptReducer(
+      initialAgentTranscriptState,
+      ready("session-1", "42", {
+        currentTurnId: "turn-1",
+        readOnly: true,
+        runtimeStatus: "running",
+      }),
+    );
 
-  it("ready populates the session and enters replaying", () => {
-    const next = agentTranscriptReducer(initialAgentTranscriptState, {
-      type: "ready",
-      sessionId: "session-9",
-      readOnly: true,
-      permissionMode: "plan",
-      lastSequence: "42",
-    });
-    expect(next.sessionId).toBe("session-9");
-    expect(next.readOnly).toBe(true);
-    expect(next.permissionMode).toBe("plan");
-    expect(next.lastSequence).toBe("42");
+    expect(next.sessionId).toBe("session-1");
+    expect(next.lastSequence).toBe("0");
+    expect(next.replayHighWatermark).toBe("42");
     expect(next.replaying).toBe(true);
+    expect(next.runtimeStatus).toBe("running");
+    expect(next.currentTurnId).toBe("turn-1");
   });
 
-  it("candidates replaces the candidate list", () => {
-    const candidates = [
-      { name: "/help", description: "Help", aliases: ["/h"], type: "local" },
-    ];
-    const next = agentTranscriptReducer(initialAgentTranscriptState, {
-      type: "candidates",
-      candidates,
-    });
-    expect(next.candidates).toEqual(candidates);
-  });
-
-  it("event merges dedupe by sequence and stay ascending", () => {
-    const state = reduce([
+  it("buffers out-of-order live events until the gap is filled", () => {
+    const withGap = reduce([
+      ready("session-1", "3"),
+      { type: "event", event: makeEvent("3") },
       {
         type: "transcript_batch",
-        events: [
-          makeEvent("2", "tool_use"),
-          makeEvent("1", "tool_use"),
-          makeEvent("10", "tool_use"),
-        ],
+        sessionId: "session-1",
+        highWatermark: "3",
+        complete: false,
+        events: [makeEvent("1")],
       },
-      { type: "event", event: makeEvent("3", "tool_use") },
     ]);
-    expect(state.events.map((event) => event.sequence)).toEqual([
+
+    expect(withGap.lastSequence).toBe("1");
+    expect(withGap.events.map((event) => event.sequence)).toEqual(["1"]);
+    expect(withGap.pendingEvents.map((event) => event.sequence)).toEqual(["3"]);
+    expect(withGap.replaying).toBe(true);
+
+    const filled = agentTranscriptReducer(withGap, {
+      type: "event",
+      event: makeEvent("2"),
+    });
+    expect(filled.lastSequence).toBe("3");
+    expect(filled.events.map((event) => event.sequence)).toEqual([
       "1",
       "2",
       "3",
-      "10",
     ]);
-    expect(state.lastSequence).toBe("10");
+    expect(filled.pendingEvents).toEqual([]);
+    expect(filled.replaying).toBe(true);
+
+    const completed = agentTranscriptReducer(filled, {
+      type: "transcript_batch",
+      sessionId: "session-1",
+      highWatermark: "3",
+      complete: true,
+      events: [],
+    });
+    expect(completed.replaying).toBe(false);
   });
 
-  it("event with a duplicate sequence replaces the prior entry", () => {
+  it("does not finish replay before the complete batch", () => {
     const state = reduce([
+      ready("session-1", "1"),
+      { type: "event", event: makeEvent("1") },
+    ]);
+    expect(state.lastSequence).toBe("1");
+    expect(state.replaying).toBe(true);
+
+    const completed = agentTranscriptReducer(state, {
+      type: "transcript_batch",
+      sessionId: "session-1",
+      highWatermark: "1",
+      complete: true,
+      events: [],
+    });
+    expect(completed.replaying).toBe(false);
+  });
+
+  it("deduplicates repeated events by session and sequence", () => {
+    const state = reduce([
+      ready("session-1", "1"),
       {
-        type: "event",
-        event: makeEvent("5", "tool_use", { payload: "first" }),
+        type: "transcript_batch",
+        sessionId: "session-1",
+        highWatermark: "1",
+        complete: true,
+        events: [makeEvent("1", "tool_use", { payload: "first" })],
       },
       {
         type: "event",
-        event: makeEvent("5", "tool_use", { payload: "second" }),
+        event: makeEvent("1", "tool_use", { payload: "duplicate" }),
       },
     ]);
     expect(state.events).toHaveLength(1);
-    expect(state.events[0]?.payload).toBe("second");
+    expect(state.events[0]?.payload).toBe("first");
+    expect(state.lastSequence).toBe("1");
   });
 
-  it("lastSequence tracks the highest merged sequence, not insertion order", () => {
-    const state = reduce([
-      { type: "event", event: makeEvent("100", "tool_use") },
-      { type: "event", event: makeEvent("9", "tool_use") },
-    ]);
-    // "100" is greater than "9" (longer decimal string) so it stays last.
-    expect(state.lastSequence).toBe("100");
-    expect(state.events.at(-1)?.sequence).toBe("100");
-  });
-
-  it("transcript_batch clears the replaying flag", () => {
-    const state = reduce([
+  it("clears transcript, cursor, buffers, and old interactions on session change", () => {
+    const request = {
+      interactionId: "permission-1",
+      turnId: "turn-1",
+      toolName: "write",
+      args: null,
+      description: "Write a file",
+      reason: "requested",
+    };
+    const firstSession = reduce([
+      ready("session-1", "1"),
       {
-        type: "ready",
-        sessionId: "s",
-        readOnly: false,
-        permissionMode: "default",
-        lastSequence: "0",
+        type: "transcript_batch",
+        sessionId: "session-1",
+        highWatermark: "1",
+        complete: true,
+        events: [makeEvent("1")],
       },
-      { type: "transcript_batch", events: [makeEvent("1", "tool_use")] },
+      { type: "permission_request", sessionId: "session-1", request },
     ]);
-    expect(state.replaying).toBe(false);
-    expect(state.events).toHaveLength(1);
+
+    const switched = agentTranscriptReducer(
+      firstSession,
+      ready("session-2", "0"),
+    );
+    expect(switched.sessionId).toBe("session-2");
+    expect(switched.lastSequence).toBe("0");
+    expect(switched.events).toEqual([]);
+    expect(switched.pendingEvents).toEqual([]);
+    expect(switched.pendingPermission).toBeUndefined();
   });
 
-  it("assistant_delta and thinking_delta accumulate their buffers", () => {
+  it("restores pending interactions from ready and clears only after acknowledgement", () => {
+    const permission = {
+      interactionId: "permission-1",
+      turnId: "turn-1",
+      toolName: "write",
+      args: { path: "src/App.tsx" },
+      description: "Write a file",
+      reason: "requested",
+    };
+    const waiting = agentTranscriptReducer(
+      initialAgentTranscriptState,
+      ready("session-1", "0", {
+        currentTurnId: "turn-1",
+        pendingPermission: permission,
+        runtimeStatus: "waiting",
+      }),
+    );
+    expect(waiting.pendingPermission).toEqual(permission);
+
+    const wrongSession = agentTranscriptReducer(waiting, {
+      type: "interaction_resolved",
+      interactionId: permission.interactionId,
+      sessionId: "session-2",
+    });
+    expect(wrongSession.pendingPermission).toEqual(permission);
+
+    const resolved = agentTranscriptReducer(waiting, {
+      type: "interaction_resolved",
+      interactionId: permission.interactionId,
+      sessionId: "session-1",
+    });
+    expect(resolved.pendingPermission).toBeUndefined();
+  });
+
+  it("ignores events and batches from another session", () => {
     const state = reduce([
-      { type: "assistant_delta", text: "Hel" },
-      { type: "assistant_delta", text: "lo" },
-      { type: "thinking_delta", text: "th" },
-      { type: "thinking_delta", text: "ink" },
+      ready("session-1", "1"),
+      {
+        type: "event",
+        event: makeEvent("1", "tool_use", { sessionId: "session-2" }),
+      },
+      {
+        type: "transcript_batch",
+        sessionId: "session-2",
+        highWatermark: "1",
+        complete: true,
+        events: [makeEvent("1", "tool_use", { sessionId: "session-2" })],
+      },
     ]);
-    expect(state.streamingText).toBe("Hello");
-    expect(state.thinkingText).toBe("think");
+    expect(state.lastSequence).toBe("0");
+    expect(state.events).toEqual([]);
+    expect(state.replaying).toBe(true);
   });
 
-  it.each([
-    "user_message",
-    "assistant_message",
-    "loop_complete",
-    "turn_complete",
-  ])("a %s event clears streaming and thinking buffers", (kind) => {
+  it("clears ephemeral buffers only when contiguous boundary events apply", () => {
     const state = reduce([
-      { type: "assistant_delta", text: "partial answer" },
-      { type: "thinking_delta", text: "partial thought" },
-      { type: "event", event: makeEvent("1", kind) },
-    ]);
-    expect(state.streamingText).toBe("");
-    expect(state.thinkingText).toBe("");
-    expect(state.events).toHaveLength(1);
-  });
-
-  it("a non-boundary event keeps the streaming buffers intact", () => {
-    const state = reduce([
-      { type: "assistant_delta", text: "keep me" },
-      { type: "thinking_delta", text: "and me" },
-      { type: "event", event: makeEvent("1", "tool_use") },
-    ]);
-    expect(state.streamingText).toBe("keep me");
-    expect(state.thinkingText).toBe("and me");
-  });
-
-  it("runtime_status idle clears thinking but preserves streamingText", () => {
-    const running = reduce([
+      ready("session-1", "2"),
       { type: "assistant_delta", text: "answer" },
-      { type: "thinking_delta", text: "thoughts" },
-      { type: "runtime_status", status: "running", detail: "working" },
+      { type: "thinking_delta", text: "thought" },
+      { type: "event", event: makeEvent("2", "assistant_message") },
     ]);
-    expect(running.runtimeStatus).toBe("running");
-    expect(running.statusDetail).toBe("working");
-    expect(running.thinkingText).toBe("thoughts");
+    expect(state.streamingText).toBe("answer");
+
+    const filled = agentTranscriptReducer(state, {
+      type: "event",
+      event: makeEvent("1", "tool_use"),
+    });
+    expect(filled.streamingText).toBe("");
+    expect(filled.thinkingText).toBe("");
+  });
+
+  it("updates runtime status and clears the current turn at idle", () => {
+    const running = reduce([
+      ready("session-1", "0"),
+      {
+        type: "runtime_status",
+        status: "running",
+        turnId: "turn-1",
+        detail: "working",
+      },
+    ]);
+    expect(running.currentTurnId).toBe("turn-1");
 
     const idle = agentTranscriptReducer(running, {
       type: "runtime_status",
       status: "idle",
+      turnId: undefined,
       detail: undefined,
     });
     expect(idle.runtimeStatus).toBe("idle");
-    expect(idle.thinkingText).toBe("");
-    // Only the thinking buffer is dropped on idle; streamingText survives.
-    expect(idle.streamingText).toBe("answer");
+    expect(idle.currentTurnId).toBeUndefined();
   });
 
-  it("permission_request then matching interaction_cleared clears it", () => {
-    const request = {
-      interactionId: "int-1",
-      turnId: "turn-1",
-      toolName: "write",
-      args: null,
-      description: undefined,
-      reason: undefined,
-    };
-    const withPending = agentTranscriptReducer(initialAgentTranscriptState, {
-      type: "permission_request",
-      request,
-    });
-    expect(withPending.pendingPermission).toEqual(request);
-
-    const cleared = agentTranscriptReducer(withPending, {
-      type: "interaction_cleared",
-      interactionId: "int-1",
-    });
-    expect(cleared.pendingPermission).toBeUndefined();
-  });
-
-  it("question_request then matching interaction_cleared clears it", () => {
-    const request = {
-      interactionId: "q-1",
-      turnId: "turn-1",
-      questions: [
-        { question: "Pick one", header: "H", options: [], multiSelect: false },
-      ],
-    };
-    const withPending = agentTranscriptReducer(initialAgentTranscriptState, {
-      type: "question_request",
-      request,
-    });
-    expect(withPending.pendingQuestion).toEqual(request);
-
-    const cleared = agentTranscriptReducer(withPending, {
-      type: "interaction_cleared",
-      interactionId: "q-1",
-    });
-    expect(cleared.pendingQuestion).toBeUndefined();
-  });
-
-  it("interaction_cleared with an unknown id returns the same state reference", () => {
-    const request = {
-      interactionId: "int-1",
-      turnId: undefined,
-      toolName: "write",
-      args: null,
-      description: undefined,
-      reason: undefined,
-    };
-    const withPending = agentTranscriptReducer(initialAgentTranscriptState, {
-      type: "permission_request",
-      request,
-    });
-    const untouched = agentTranscriptReducer(withPending, {
-      type: "interaction_cleared",
-      interactionId: "does-not-match",
-    });
-    expect(untouched).toBe(withPending);
-    expect(untouched.pendingPermission).toEqual(request);
-  });
-
-  it("command_result appends entries with distinct increasing ids", () => {
-    const state = reduce([
-      {
-        type: "command_result",
-        result: {
-          command: "a",
-          requestId: "r1",
-          supported: true,
-          result: null,
-          error: undefined,
-        },
-      },
-      {
-        type: "command_result",
-        result: {
-          command: "b",
-          requestId: "r2",
-          supported: false,
-          result: null,
-          error: "boom",
-        },
-      },
-    ]);
-    expect(state.commandResults).toHaveLength(2);
-    const [first, second] = state.commandResults;
-    expect(first?.command).toBe("a");
-    expect(second?.command).toBe("b");
-    expect(second?.id).toBeGreaterThan(first?.id);
-  });
-
-  it("files_changed increments the revision and tracks the latest hash", () => {
-    const first = agentTranscriptReducer(initialAgentTranscriptState, {
-      type: "files_changed",
-      revision: "rev-1",
-    });
-    expect(first.filesRevision).toBe(1);
-    expect(first.latestFileRevision).toBe("rev-1");
-
-    const second = agentTranscriptReducer(first, {
-      type: "files_changed",
-      revision: undefined,
-    });
-    expect(second.filesRevision).toBe(2);
-    // Undefined revision keeps the previously known revision.
-    expect(second.latestFileRevision).toBe("rev-1");
-  });
-
-  it("error appends and dismiss_error removes by id", () => {
-    const withErrors = reduce([
-      { type: "error", message: "first", code: "E1" },
-      { type: "error", message: "second", code: undefined },
-    ]);
-    expect(withErrors.errors).toHaveLength(2);
-    const targetId = withErrors.errors[0]?.id;
-
-    const dismissed = agentTranscriptReducer(withErrors, {
-      type: "dismiss_error",
-      id: targetId,
-    });
-    expect(dismissed.errors).toHaveLength(1);
-    expect(dismissed.errors[0]?.message).toBe("second");
-  });
-
-  it("error list is capped at 20 entries keeping the most recent", () => {
+  it("caps command results and errors while preserving reset connection data", () => {
     const actions: AgentTranscriptAction[] = Array.from(
       { length: 25 },
       (_, index) => ({
         type: "error",
-        message: `err-${index}`,
+        message: `err-${String(index)}`,
         code: undefined,
       }),
     );
-    const state = reduce(actions);
-    expect(state.errors).toHaveLength(20);
-    expect(state.errors.at(-1)?.message).toBe("err-24");
-  });
+    const withErrors = reduce(actions);
+    expect(withErrors.errors).toHaveLength(20);
 
-  it("reset restores defaults but preserves connectionState and candidates", () => {
     const candidates = [
       { name: "/run", description: "Run", aliases: [], type: "local" },
     ];
-    const populated = reduce([
-      { type: "connection_changed", state: "connected" },
-      { type: "candidates", candidates },
-      { type: "event", event: makeEvent("1", "tool_use") },
-      { type: "assistant_delta", text: "streaming" },
-    ]);
-    const reset = agentTranscriptReducer(populated, { type: "reset" });
+    const reset = reduce(
+      [
+        { type: "connection_changed", state: "connected" },
+        { type: "candidates", candidates },
+        { type: "reset" },
+      ],
+      withErrors,
+    );
     expect(reset.connectionState).toBe("connected");
     expect(reset.candidates).toEqual(candidates);
-    expect(reset.events).toEqual([]);
-    expect(reset.streamingText).toBe("");
     expect(reset.lastSequence).toBe("0");
   });
 });

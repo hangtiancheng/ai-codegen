@@ -82,6 +82,7 @@ export function WorkspacePanel({
             logs={workspace.logs}
             onIframeLoad={workspace.handleIframeLoad}
             onRefresh={workspace.reloadPreview}
+            onRetry={workspace.resync}
             onToggleEditMode={workspace.toggleEditMode}
             previewUrl={workspace.previewUrl}
             status={workspace.status}

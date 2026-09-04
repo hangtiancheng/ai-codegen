@@ -21,6 +21,7 @@ type UpdateUserInput = Readonly<{
 type ListUserParams = Readonly<{
   filter: {
     id?: bigint;
+    userAccount?: string;
     username?: string;
     userProfile?: string;
     userRole?: UserRole;
@@ -49,6 +50,9 @@ const buildUpdateData = (data: UpdateUserInput) => ({
 const buildListWhere = (filter: ListUserParams["filter"]) => ({
   isDelete: false,
   ...(filter.id !== undefined && { id: filter.id }),
+  ...(filter.userAccount !== undefined && {
+    userAccount: { contains: filter.userAccount },
+  }),
   ...(filter.username !== undefined && {
     username: { contains: filter.username },
   }),

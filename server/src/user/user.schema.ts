@@ -73,6 +73,7 @@ export const userIdBodySchema = z.object({ id: idSchema });
 
 export const userPageQuerySchema = pageRequestSchema.extend({
   id: idSchema.optional(),
+  userAccount: z.string().min(1).max(256).optional(),
   username: z.string().min(1).max(256).optional(),
   userProfile: z.string().min(1).max(512).optional(),
   userRole: userRoleSchema.optional(),

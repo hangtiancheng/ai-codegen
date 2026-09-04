@@ -15,6 +15,7 @@ import { createRequestContextMiddleware } from "./observability/index.js";
 import {
   createAgentRoutes,
   createAppRoutes,
+  createChatHistoryRoutes,
   createManagementRoutes,
   createUserRoutes,
   healthRoutes,
@@ -79,6 +80,7 @@ export const createApp = (deps: AppDependencies): CreatedApp => {
       upgradeWebSocket,
     }),
   );
+  api.route("/chat-history", createChatHistoryRoutes({ appService: deps.appService, db: deps.db }));
   api.route(
     "/management",
     createManagementRoutes({

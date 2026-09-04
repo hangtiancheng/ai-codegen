@@ -25,7 +25,11 @@ export const resolveAppAccess = async (
   if (user === undefined) {
     throw new HttpError(ErrorCode.NotLoginError, "User not logged in", 401);
   }
-  const appId = idSchema.parse(c.req.param("appId"));
+  const parsedAppId = idSchema.safeParse(c.req.param("appId"));
+  if (!parsedAppId.success) {
+    throw new HttpError(ErrorCode.ParamsError, "Invalid app id", 400);
+  }
+  const appId = parsedAppId.data;
   const app = await appService.requireActiveById(appId);
   const ownerId = app.userId;
   const writable = BigInt(user.id) === ownerId || user.userRole === UserRole.ADMIN;

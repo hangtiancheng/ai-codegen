@@ -19,78 +19,60 @@ describe("agentFilePathSchema", () => {
     }
   });
 
-  it("rejects parent-directory traversal", () => {
-    expect(agentFilePathSchema.safeParse("../x").success).toBe(false);
-    expect(agentFilePathSchema.safeParse("src/../../etc").success).toBe(false);
-  });
-
-  it("rejects absolute paths", () => {
-    expect(agentFilePathSchema.safeParse("/abs").success).toBe(false);
-    expect(agentFilePathSchema.safeParse("/etc/passwd").success).toBe(false);
-  });
-
-  it("rejects backslash separators", () => {
-    expect(agentFilePathSchema.safeParse("a\\b").success).toBe(false);
-  });
-
-  it("rejects empty segments (double slash / trailing slash)", () => {
-    expect(agentFilePathSchema.safeParse("a//b").success).toBe(false);
-    expect(agentFilePathSchema.safeParse("a/").success).toBe(false);
-    expect(agentFilePathSchema.safeParse("").success).toBe(false);
-  });
-
-  it("rejects '.' and '..' segments", () => {
-    expect(agentFilePathSchema.safeParse("./a").success).toBe(false);
-    expect(agentFilePathSchema.safeParse("a/./b").success).toBe(false);
-  });
-
-  it("rejects paths that touch forbidden directories", () => {
-    expect(agentFilePathSchema.safeParse(".git").success).toBe(false);
-    expect(agentFilePathSchema.safeParse("a/.git/config").success).toBe(false);
-    expect(
-      agentFilePathSchema.safeParse("node_modules/pkg/index.js").success,
-    ).toBe(false);
-  });
-
-  it("rejects NUL bytes", () => {
-    expect(agentFilePathSchema.safeParse("a\u0000b").success).toBe(false);
+  it("rejects traversal, absolute, backslash, empty, and forbidden paths", () => {
+    for (const value of [
+      "../x",
+      "src/../../etc",
+      "/abs",
+      "a\\b",
+      "a//b",
+      "a/",
+      "",
+      "./a",
+      "a/./b",
+      ".git",
+      "a/.git/config",
+      "node_modules/pkg/index.js",
+      "a\u0000b",
+    ]) {
+      expect(agentFilePathSchema.safeParse(value).success).toBe(false);
+    }
   });
 });
 
 describe("agentRuntimeStatusSchema", () => {
-  it("normalizes SCREAMING_SNAKE_CASE to lower-case enum values", () => {
+  it("normalizes SCREAMING_SNAKE_CASE and rejects unknown values", () => {
     expect(agentRuntimeStatusSchema.parse("RUNNING")).toBe("running");
     expect(agentRuntimeStatusSchema.parse("WAITING_FOR_PERMISSION")).toBe(
       "waiting_for_permission",
     );
-  });
-
-  it("rejects values outside the enum", () => {
     expect(agentRuntimeStatusSchema.safeParse("dancing").success).toBe(false);
   });
 });
 
 describe("agentClientMessageSchema", () => {
-  it("accepts a valid heartbeat message", () => {
+  it("accepts the server hello and heartbeat shapes", () => {
+    expect(
+      agentClientMessageSchema.safeParse({
+        type: "hello",
+        requestId: "request-1",
+        afterSequence: "123",
+      }).success,
+    ).toBe(true);
     expect(
       agentClientMessageSchema.safeParse({ type: "heartbeat", timestamp: 123 })
         .success,
     ).toBe(true);
   });
 
-  it("accepts a hello message with the optional field omitted", () => {
-    expect(agentClientMessageSchema.safeParse({ type: "hello" }).success).toBe(
-      true,
-    );
-  });
-
-  it("rejects a heartbeat missing its timestamp", () => {
+  it("rejects stale field names and malformed messages", () => {
+    expect(
+      agentClientMessageSchema.safeParse({ type: "hello", lastSequence: "1" })
+        .success,
+    ).toBe(false);
     expect(
       agentClientMessageSchema.safeParse({ type: "heartbeat" }).success,
     ).toBe(false);
-  });
-
-  it("rejects an unknown message type", () => {
     expect(
       agentClientMessageSchema.safeParse({ type: "definitely-not-real" })
         .success,
@@ -99,39 +81,93 @@ describe("agentClientMessageSchema", () => {
 });
 
 describe("agentServerMessageSchema", () => {
-  it("accepts a valid error message", () => {
-    expect(
-      agentServerMessageSchema.safeParse({ type: "error", message: "boom" })
-        .success,
-    ).toBe(true);
-  });
+  const sessionId = "11111111-1111-4111-8111-111111111111";
+  const turnId = "22222222-2222-4222-8222-222222222222";
 
-  it("accepts a ready message with a null current session", () => {
+  it("accepts a valid recoverable error message", () => {
     expect(
       agentServerMessageSchema.safeParse({
-        type: "ready",
-        capabilities: { canRun: true, canManage: false, readOnly: false },
-        runtimeStatus: "idle",
-        currentSessionId: null,
-        lastSequence: "0",
+        type: "error",
+        code: "interaction_response_failed",
+        message: "boom",
+        recoverable: true,
       }).success,
     ).toBe(true);
   });
 
-  it("rejects an error message with an empty message string", () => {
+  it("accepts ready with replay, runtime, and pending interaction metadata", () => {
     expect(
-      agentServerMessageSchema.safeParse({ type: "error", message: "" })
-        .success,
+      agentServerMessageSchema.safeParse({
+        type: "ready",
+        sessionId,
+        highWatermark: "42",
+        readOnly: false,
+        permissionMode: "DEFAULT",
+        runtimeStatus: "waiting",
+        currentTurnId: turnId,
+        pendingInteractions: [
+          {
+            type: "question",
+            interactionId: "33333333-3333-4333-8333-333333333333",
+            sessionId,
+            turnId,
+            questions: [
+              {
+                question: "Continue?",
+                header: "Choice",
+                options: [{ label: "Yes" }],
+                multiSelect: false,
+              },
+            ],
+          },
+        ],
+      }).success,
+    ).toBe(true);
+  });
+
+  it("requires batch completion metadata and enforces 1000 events", () => {
+    const event = (sequence: number) => ({
+      sessionId,
+      sequence: String(sequence),
+      kind: "assistant_message",
+      payload: { text: "done" },
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+    expect(
+      agentServerMessageSchema.safeParse({
+        type: "transcript_batch",
+        sessionId,
+        highWatermark: "1",
+        complete: true,
+        events: [event(1)],
+      }).success,
+    ).toBe(true);
+    expect(
+      agentServerMessageSchema.safeParse({
+        type: "transcript_batch",
+        sessionId,
+        highWatermark: "1001",
+        complete: false,
+        events: Array.from({ length: 1_001 }, (_, index) => event(index + 1)),
+      }).success,
     ).toBe(false);
   });
 
-  it("rejects an error message with no message field", () => {
+  it("accepts interaction resolution broadcasts", () => {
+    expect(
+      agentServerMessageSchema.safeParse({
+        type: "interaction_resolved",
+        interactionId: "33333333-3333-4333-8333-333333333333",
+        sessionId,
+        outcome: "answered",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects incomplete and unknown server messages", () => {
     expect(agentServerMessageSchema.safeParse({ type: "error" }).success).toBe(
       false,
     );
-  });
-
-  it("rejects an unknown server message type", () => {
     expect(agentServerMessageSchema.safeParse({ type: "nope" }).success).toBe(
       false,
     );
@@ -139,43 +175,33 @@ describe("agentServerMessageSchema", () => {
 });
 
 describe("agentFileMutationResponseSchema", () => {
-  it("discriminates a successful (ok) mutation", () => {
-    const parsed = agentFileMutationResponseSchema.safeParse({
-      status: "ok",
-      result: { path: "src/x.ts", hash: "abc123" },
-    });
-    expect(parsed.success).toBe(true);
-    if (parsed.success) {
-      expect(parsed.data.status).toBe("ok");
-    }
+  it("discriminates successful and conflict mutations", () => {
+    expect(
+      agentFileMutationResponseSchema.safeParse({
+        status: "ok",
+        result: { path: "src/x.ts", hash: "abc123" },
+      }).success,
+    ).toBe(true);
+    expect(
+      agentFileMutationResponseSchema.safeParse({
+        status: "conflict",
+        conflict: {
+          path: "src/x.ts",
+          expectedHash: null,
+          actualHash: "def456",
+          message: "stale write",
+        },
+      }).success,
+    ).toBe(true);
   });
 
-  it("discriminates a conflict result", () => {
-    const parsed = agentFileMutationResponseSchema.safeParse({
-      status: "conflict",
-      conflict: {
-        path: "src/x.ts",
-        expectedHash: null,
-        actualHash: "def456",
-        message: "stale write",
-      },
-    });
-    expect(parsed.success).toBe(true);
-    if (parsed.success) {
-      expect(parsed.data.status).toBe("conflict");
-    }
-  });
-
-  it("rejects an ok envelope that is missing its result", () => {
+  it("rejects incomplete and unknown mutation envelopes", () => {
     expect(
       agentFileMutationResponseSchema.safeParse({
         status: "ok",
         conflict: { path: "x", expectedHash: null, actualHash: "h" },
       }).success,
     ).toBe(false);
-  });
-
-  it("rejects an unknown status", () => {
     expect(
       agentFileMutationResponseSchema.safeParse({ status: "maybe" }).success,
     ).toBe(false);

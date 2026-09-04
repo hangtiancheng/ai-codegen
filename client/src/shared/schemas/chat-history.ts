@@ -29,8 +29,8 @@ export type ChatHistory = z.infer<typeof chatHistorySchema>;
 
 export const listAppChatHistoryParamsSchema = z.object({
   appId: appIdSchema,
+  current: positiveIntSchema.default(1),
   pageSize: positiveIntSchema.default(10),
-  lastCreateTime: isoTimestampSchema.optional(),
 });
 
 export type ListAppChatHistoryParams = z.infer<

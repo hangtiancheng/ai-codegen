@@ -2,6 +2,7 @@ export {
   apiErrorKinds,
   ApiException,
   describeApiError,
+  isApiExceptionWithStatus,
   type ApiError,
   type ApiErrorKind,
 } from "./api-error";

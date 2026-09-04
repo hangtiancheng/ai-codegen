@@ -11,52 +11,16 @@ const crossOriginIsolationHeaders = {
   "Cross-Origin-Opener-Policy": "same-origin",
 };
 
-export default defineConfig({
+export default defineConfig(({ isPreview, command }) => ({
   plugins: [react(), tailwindcss(), sentryPlugin7({ dsn: "/sentry" })],
-  server: { headers: crossOriginIsolationHeaders },
-  preview: { headers: crossOriginIsolationHeaders },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: splitVendorChunks,
-      },
-    },
+  server: {
+    headers: crossOriginIsolationHeaders,
+    // proxy
   },
-  // test: {
-  //   environment: "jsdom",
-  //   globals: false,
-  //   setupFiles: ["./tests/setup-tests.ts"],
-  // },
+  preview: { headers: crossOriginIsolationHeaders },
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
-});
-
-function splitVendorChunks(id: string): string | undefined {
-  if (!id.includes("node_modules")) {
-    return undefined;
-  }
-  if (
-    id.includes("/react/") ||
-    id.includes("/react-dom/") ||
-    id.includes("react-router") ||
-    id.includes("/scheduler/")
-  ) {
-    return "vendor-react";
-  }
-  if (id.includes("@tanstack")) {
-    return "vendor-tanstack";
-  }
-  if (id.includes("marked") || id.includes("dompurify")) {
-    return "vendor-markdown";
-  }
-  if (id.includes("lucide-react")) {
-    return "vendor-icons";
-  }
-  if (id.includes("gsap") || id.includes("animate.css")) {
-    return "vendor-motion";
-  }
-  return "vendor-core";
-}
+}));

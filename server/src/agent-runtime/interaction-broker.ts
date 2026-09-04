@@ -1,16 +1,23 @@
 import { randomUUID } from "node:crypto";
 import type { Decision } from "@swifty.js/swifty";
+import type { AgentPendingInteractionMessage } from "./protocol.js";
 import type { AgentStores } from "./stores.js";
 import type { PermissionDecision, QuestionAnswers } from "./types.js";
 
 type PendingPermission = Readonly<{
   kind: "permission";
+  sessionId: string;
+  turnId: string | null;
+  payload: PermissionRequestPayload;
   resolve: (decision: PermissionDecision) => void;
   timer: NodeJS.Timeout;
 }>;
 
 type PendingQuestion = Readonly<{
   kind: "question";
+  sessionId: string;
+  turnId: string | null;
+  questions: readonly SwiftyQuestion[];
   questionTexts: readonly string[];
   resolve: (answers: Record<string, string>) => void;
   reject: (error: Error) => void;
@@ -68,10 +75,19 @@ export const createInteractionBroker = (stores: AgentStores, timeoutMs = DEFAULT
     const decision = new Promise<PermissionDecision>((resolve) => {
       const timer = setTimeout(() => {
         clear(row.id);
-        void stores.interactions.answer(row.id, "EXPIRED", { decision: "deny" });
+        void stores.interactions
+          .answer(row.id, "EXPIRED", { decision: "deny" })
+          .catch(() => undefined);
         resolve("deny");
       }, timeoutMs);
-      pending.set(row.id, { kind: "permission", resolve, timer });
+      pending.set(row.id, {
+        kind: "permission",
+        payload: input.payload,
+        resolve,
+        sessionId: input.sessionId,
+        timer,
+        turnId: input.turnId,
+      });
     });
     return { decision, interactionId: row.id };
   };
@@ -92,10 +108,19 @@ export const createInteractionBroker = (stores: AgentStores, timeoutMs = DEFAULT
     const answers = new Promise<Record<string, string>>((resolve, reject) => {
       const timer = setTimeout(() => {
         clear(row.id);
-        void stores.interactions.answer(row.id, "EXPIRED", null);
+        void stores.interactions.answer(row.id, "EXPIRED", null).catch(() => undefined);
         reject(new Error("Question timed out with no response"));
       }, timeoutMs);
-      pending.set(row.id, { kind: "question", questionTexts, reject, resolve, timer });
+      pending.set(row.id, {
+        kind: "question",
+        questions: input.questions,
+        questionTexts,
+        reject,
+        resolve,
+        sessionId: input.sessionId,
+        timer,
+        turnId: input.turnId,
+      });
     });
     return { answers, interactionId: row.id };
   };
@@ -104,9 +129,11 @@ export const createInteractionBroker = (stores: AgentStores, timeoutMs = DEFAULT
     interactionId: string,
     decision: PermissionDecision,
   ): Promise<boolean> => {
-    const entry = clear(interactionId);
+    const entry = pending.get(interactionId);
     if (entry === undefined || entry.kind !== "permission") return false;
     await stores.interactions.answer(interactionId, "ANSWERED", { decision });
+    if (pending.get(interactionId) !== entry) return false;
+    clear(interactionId);
     entry.resolve(decision);
     return true;
   };
@@ -115,7 +142,7 @@ export const createInteractionBroker = (stores: AgentStores, timeoutMs = DEFAULT
     interactionId: string,
     answers: QuestionAnswers,
   ): Promise<boolean> => {
-    const entry = clear(interactionId);
+    const entry = pending.get(interactionId);
     if (entry === undefined || entry.kind !== "question") return false;
     const normalized: Record<string, string> = {};
     for (const questionText of entry.questionTexts) {
@@ -123,6 +150,8 @@ export const createInteractionBroker = (stores: AgentStores, timeoutMs = DEFAULT
       normalized[questionText] = Array.isArray(value) ? value.join(", ") : (value ?? "");
     }
     await stores.interactions.answer(interactionId, "ANSWERED", normalized);
+    if (pending.get(interactionId) !== entry) return false;
+    clear(interactionId);
     entry.resolve(normalized);
     return true;
   };
@@ -130,6 +159,7 @@ export const createInteractionBroker = (stores: AgentStores, timeoutMs = DEFAULT
   /** Fail-closed cancellation for a whole session (abort, disconnect, dispose). */
   const cancelSession = async (sessionId: string): Promise<void> => {
     for (const [id, entry] of [...pending.entries()]) {
+      if (entry.sessionId !== sessionId) continue;
       clear(id);
       if (entry.kind === "permission") {
         entry.resolve("deny");
@@ -138,6 +168,34 @@ export const createInteractionBroker = (stores: AgentStores, timeoutMs = DEFAULT
       }
     }
     await stores.interactions.cancelPending(sessionId);
+  };
+
+  const snapshot = (sessionId: string): AgentPendingInteractionMessage[] => {
+    const result: AgentPendingInteractionMessage[] = [];
+    for (const [interactionId, entry] of pending) {
+      if (entry.sessionId !== sessionId) continue;
+      if (entry.kind === "permission") {
+        result.push({
+          interactionId,
+          request: entry.payload,
+          sessionId,
+          type: "permission",
+          ...(entry.turnId !== null && { turnId: entry.turnId }),
+        });
+      } else {
+        result.push({
+          interactionId,
+          questions: entry.questions.map((question) => ({
+            ...question,
+            options: question.options.map((option) => ({ ...option })),
+          })),
+          sessionId,
+          type: "question",
+          ...(entry.turnId !== null && { turnId: entry.turnId }),
+        });
+      }
+    }
+    return result;
   };
 
   const hasPending = (): boolean => pending.size > 0;
@@ -150,6 +208,7 @@ export const createInteractionBroker = (stores: AgentStores, timeoutMs = DEFAULT
     requestQuestions,
     resolvePermission,
     resolveQuestion,
+    snapshot,
   };
 };
 

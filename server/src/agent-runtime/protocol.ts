@@ -5,6 +5,62 @@ const sessionIdSchema = z.uuid();
 const turnIdSchema = z.uuid();
 const sequenceSchema = z.string().regex(/^\d+$/u);
 const jsonObjectSchema = z.record(z.string(), z.unknown());
+const runtimeStatusSchema = z.enum(["idle", "running", "waiting", "stopped", "error"]);
+
+const permissionRequestSchema = z
+  .object({
+    toolName: z.string(),
+    args: z.unknown().optional(),
+    reason: z.string().optional(),
+    description: z.string().optional(),
+  })
+  .strict();
+
+const questionSchema = z
+  .object({
+    question: z.string(),
+    header: z.string(),
+    options: z.array(
+      z
+        .object({
+          label: z.string(),
+          description: z.string().optional(),
+        })
+        .strict(),
+    ),
+    multiSelect: z.boolean(),
+  })
+  .strict();
+
+const commandCandidateSchema = z
+  .object({
+    name: z.string(),
+    description: z.string(),
+    aliases: z.array(z.string()),
+    type: z.string(),
+  })
+  .strict();
+
+export const agentPendingInteractionSchema = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("permission"),
+      interactionId: sessionIdSchema,
+      sessionId: sessionIdSchema,
+      turnId: turnIdSchema.optional(),
+      request: permissionRequestSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("question"),
+      interactionId: sessionIdSchema,
+      sessionId: sessionIdSchema,
+      turnId: turnIdSchema.optional(),
+      questions: z.array(questionSchema),
+    })
+    .strict(),
+]);
 
 export const agentClientMessageSchema = z.discriminatedUnion("type", [
   z
@@ -110,15 +166,21 @@ export const agentServerMessageSchema = z.union([
     .object({
       type: z.literal("ready"),
       sessionId: sessionIdSchema,
+      highWatermark: sequenceSchema,
       readOnly: z.boolean(),
       permissionMode: z.string(),
-      lastSequence: sequenceSchema,
+      runtimeStatus: runtimeStatusSchema,
+      currentTurnId: turnIdSchema.nullable(),
+      pendingInteractions: z.array(agentPendingInteractionSchema),
     })
     .strict(),
   z.object({ type: z.literal("event"), event: agentTranscriptEventSchema }).strict(),
   z
     .object({
       type: z.literal("transcript_batch"),
+      sessionId: sessionIdSchema,
+      highWatermark: sequenceSchema,
+      complete: z.boolean(),
       events: z.array(agentTranscriptEventSchema).max(1_000),
     })
     .strict(),
@@ -129,7 +191,7 @@ export const agentServerMessageSchema = z.union([
       interactionId: sessionIdSchema,
       sessionId: sessionIdSchema,
       turnId: turnIdSchema.optional(),
-      request: z.unknown(),
+      request: permissionRequestSchema,
     })
     .strict(),
   z
@@ -138,7 +200,15 @@ export const agentServerMessageSchema = z.union([
       interactionId: sessionIdSchema,
       sessionId: sessionIdSchema,
       turnId: turnIdSchema.optional(),
-      questions: z.unknown(),
+      questions: z.array(questionSchema),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("interaction_resolved"),
+      interactionId: sessionIdSchema,
+      sessionId: sessionIdSchema,
+      outcome: z.enum(["allowed", "denied", "answered", "cancelled", "expired"]),
     })
     .strict(),
   z
@@ -155,7 +225,7 @@ export const agentServerMessageSchema = z.union([
     .object({
       type: z.literal("candidates"),
       requestId: requestIdSchema.optional(),
-      candidates: z.array(jsonObjectSchema),
+      candidates: z.array(commandCandidateSchema),
     })
     .strict(),
   z
@@ -200,5 +270,6 @@ export const agentServerMessageSchema = z.union([
 ]);
 
 export type AgentClientMessage = z.infer<typeof agentClientMessageSchema>;
+export type AgentPendingInteractionMessage = z.infer<typeof agentPendingInteractionSchema>;
 export type AgentServerMessage = z.infer<typeof agentServerMessageSchema>;
 export type AgentTranscriptEventMessage = z.infer<typeof agentTranscriptEventSchema>;

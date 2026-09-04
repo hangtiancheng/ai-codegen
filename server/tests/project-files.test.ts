@@ -1,6 +1,13 @@
-import { resolve, sep } from "node:path";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve, sep } from "node:path";
 import { describe, expect, it } from "vitest";
-import { validateRelativePath } from "../src/agent-runtime/project-files.js";
+import {
+  deleteProjectEntry,
+  renameProjectEntry,
+  validateRelativePath,
+  writeProjectFile,
+} from "../src/agent-runtime/project-files.js";
 import { ErrorCode, HttpError } from "../src/common/index.js";
 
 // Security-critical path guard. These tests pin the exact allow/deny behavior of
@@ -143,5 +150,126 @@ describe("validateRelativePath - traversal check precedes forbidden check", () =
       expect((error as HttpError).code).toBe(ErrorCode.ParamsError);
       expect((error as HttpError).message).toBe("Path traversal is not allowed");
     }
+  });
+});
+
+const withProject = async (run: (directory: string) => Promise<void>): Promise<void> => {
+  const directory = await mkdtemp(join(tmpdir(), "swifty-project-files-"));
+  try {
+    await run(directory);
+  } finally {
+    await rm(directory, { force: true, recursive: true });
+  }
+};
+
+describe("project file mutation preconditions", () => {
+  it("distinguishes create-only, matching, and stale writes", async () => {
+    await withProject(async (directory) => {
+      const created = await writeProjectFile(directory, {
+        contents: "one",
+        expectedHash: null,
+        path: "src/value.txt",
+      });
+      expect(created.conflict).toBe(false);
+      if (created.conflict || created.hash === undefined) throw new Error("expected saved file");
+
+      const createConflict = await writeProjectFile(directory, {
+        contents: "two",
+        expectedHash: null,
+        path: "src/value.txt",
+      });
+      expect(createConflict).toMatchObject({ conflict: true, actualHash: created.hash });
+
+      const staleConflict = await writeProjectFile(directory, {
+        contents: "two",
+        expectedHash: "0".repeat(64),
+        path: "src/value.txt",
+      });
+      expect(staleConflict).toMatchObject({ conflict: true, actualHash: created.hash });
+
+      const updated = await writeProjectFile(directory, {
+        contents: "two",
+        expectedHash: created.hash,
+        path: "src/value.txt",
+      });
+      expect(updated.conflict).toBe(false);
+      expect(await readFile(join(directory, "src/value.txt"), "utf8")).toBe("two");
+    });
+  });
+
+  it("returns a missing-target conflict for an expected existing file", async () => {
+    await withProject(async (directory) => {
+      const result = await writeProjectFile(directory, {
+        contents: "new",
+        expectedHash: "0".repeat(64),
+        path: "missing.txt",
+      });
+      expect(result).toEqual({
+        actualHash: null,
+        conflict: true,
+        expectedHash: "0".repeat(64),
+        path: "missing.txt",
+      });
+    });
+  });
+
+  it("checks hashes before rename and delete", async () => {
+    await withProject(async (directory) => {
+      const created = await writeProjectFile(directory, {
+        contents: "value",
+        expectedHash: null,
+        path: "source.txt",
+      });
+      if (created.conflict || created.hash === undefined) throw new Error("expected saved file");
+
+      const renameConflict = await renameProjectEntry(directory, {
+        expectedHash: "0".repeat(64),
+        from: "source.txt",
+        to: "target.txt",
+      });
+      expect(renameConflict.conflict).toBe(true);
+
+      const renamed = await renameProjectEntry(directory, {
+        expectedHash: created.hash,
+        from: "source.txt",
+        to: "target.txt",
+      });
+      expect(renamed).toEqual({ conflict: false, path: "target.txt" });
+
+      const deleteConflict = await deleteProjectEntry(directory, {
+        expectedHash: "0".repeat(64),
+        path: "target.txt",
+      });
+      expect(deleteConflict.conflict).toBe(true);
+    });
+  });
+
+  it("honors recursive directory deletion", async () => {
+    await withProject(async (directory) => {
+      await mkdir(join(directory, "nested"));
+      await writeFile(join(directory, "nested/file.txt"), "value");
+      await expect(
+        deleteProjectEntry(directory, { path: "nested", recursive: false }),
+      ).rejects.toThrow();
+      await expect(
+        deleteProjectEntry(directory, { path: "nested", recursive: true }),
+      ).resolves.toEqual({ conflict: false, path: "nested" });
+    });
+  });
+
+  it("enforces the decoded five MiB limit", async () => {
+    await withProject(async (directory) => {
+      const allowed = "a".repeat(5 * 1024 * 1024);
+      await expect(
+        writeProjectFile(directory, { contents: allowed, expectedHash: null, path: "allowed.txt" }),
+      ).resolves.toMatchObject({ conflict: false });
+      await expect(
+        writeProjectFile(directory, {
+          contents: `${allowed}a`,
+          expectedHash: null,
+          path: "too-large.txt",
+        }),
+      ).rejects.toThrow("File contents exceed the size limit");
+    });
   });
 });

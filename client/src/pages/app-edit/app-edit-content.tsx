@@ -2,10 +2,16 @@ import { useState, type ReactNode } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { selectIsAdmin, useUserStore } from "@/shared/auth";
-import { downloadAppCode } from "@/shared/api";
+import { downloadAppCode, isApiExceptionWithStatus } from "@/shared/api";
 import { useAppById, useUpdateApp, useUpdateAppByAdmin } from "@/shared/query";
 import { type AppId } from "@/shared/schemas";
-import { EmptyState, LoadingState, PageContainer } from "@/shared/ui";
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageContainer,
+} from "@/shared/ui";
 import { AppEditForm } from "./app-edit-form";
 import { optionalCover } from "./app-edit-form-schema";
 import { AppEditInfoPanel } from "./app-edit-info-panel";
@@ -27,7 +33,43 @@ export function AppEditContent({ appId }: AppEditContentProps): ReactNode {
   const app = appQuery.data;
 
   if (appQuery.isLoading) return <LoadingState label="Loading app details" />;
-  if (!app) return <EmptyState title="App not found" />;
+  if (appQuery.isError) {
+    if (isApiExceptionWithStatus(appQuery.error, 404)) {
+      return <EmptyState title="App not found" />;
+    }
+    return (
+      <ErrorState
+        title="Unable to load app"
+        description="The app details could not be loaded."
+        action={
+          <Button
+            variant="outline"
+            isLoading={appQuery.isFetching}
+            onClick={() => void appQuery.refetch()}
+          >
+            Retry
+          </Button>
+        }
+      />
+    );
+  }
+  if (app === undefined) {
+    return (
+      <ErrorState
+        title="App data unavailable"
+        description="The request succeeded without returning app details."
+        action={
+          <Button
+            variant="outline"
+            isLoading={appQuery.isFetching}
+            onClick={() => void appQuery.refetch()}
+          >
+            Retry
+          </Button>
+        }
+      />
+    );
+  }
   if (!isAdmin && app.userId !== user?.id) return navigateHome();
 
   return (

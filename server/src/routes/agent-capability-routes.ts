@@ -131,14 +131,22 @@ export const registerAgentCapabilityRoutes = (
       const access = await resolveAppAccess(c, appService);
       requireWritable(access);
       const workspace = await workspaceOf(access.ownerId, access.appId);
-      const sessionId = c.req.param("sessionId");
-      const session = await manager.stores.sessions.findById(sessionId);
-      if (session === null || session.workspaceId !== workspace.id) {
+      const result = await manager.stores.sessions.resumeAndSetCurrent(
+        workspace.id,
+        c.req.param("sessionId"),
+      );
+      if (result.outcome === "not_found") {
         throw new HttpError(ErrorCode.NotFoundError, "Session not found", 404);
       }
-      await manager.stores.workspaces.setCurrentSession(workspace.id, sessionId);
+      if (result.outcome === "busy") {
+        throw new HttpError(
+          ErrorCode.OperationError,
+          "Running or waiting sessions cannot be resumed",
+          409,
+        );
+      }
       await manager.invalidate(access.ownerId, access.appId);
-      return c.json(createSuccessResponse(toSessionVo(session)));
+      return c.json(createSuccessResponse(toSessionVo(result.session)));
     })
     .get("/:appId/agent/skills", async (c) => {
       const access = await resolveAppAccess(c, appService);

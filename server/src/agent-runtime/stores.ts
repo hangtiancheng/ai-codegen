@@ -17,6 +17,14 @@ import type { AgentWorkspaceModel } from "../generated/prisma/models/AgentWorksp
 
 const asJson = (value: unknown): Prisma.InputJsonValue => value as Prisma.InputJsonValue;
 
+export const isSessionBusyForResume = (status: AgentSessionStatus): boolean =>
+  status === "RUNNING" || status === "WAITING";
+
+export type ResumeSessionResult =
+  | Readonly<{ outcome: "not_found" }>
+  | Readonly<{ outcome: "busy"; session: AgentSessionModel }>
+  | Readonly<{ outcome: "resumed"; session: AgentSessionModel }>;
+
 export type WorkspaceSettingsPatch = Readonly<{
   permissionMode?: AgentPermissionMode | undefined;
   sandboxEnabled?: boolean | undefined;
@@ -69,13 +77,12 @@ export const createAgentStores = (db: PrismaDatabaseClient) => {
   const workspaces = {
     findByUserApp: (userId: bigint, appId: bigint): Promise<AgentWorkspaceModel | null> =>
       db.agentWorkspace.findUnique({ where: { userId_appId: { appId, userId } } }),
-    getOrCreate: async (userId: bigint, appId: bigint): Promise<AgentWorkspaceModel> => {
-      const existing = await db.agentWorkspace.findUnique({
+    getOrCreate: (userId: bigint, appId: bigint): Promise<AgentWorkspaceModel> =>
+      db.agentWorkspace.upsert({
+        create: { appId, userId },
+        update: {},
         where: { userId_appId: { appId, userId } },
-      });
-      if (existing !== null) return existing;
-      return db.agentWorkspace.create({ data: { appId, userId } });
-    },
+      }),
     findById: (id: bigint): Promise<AgentWorkspaceModel | null> =>
       db.agentWorkspace.findUnique({ where: { id } }),
     updateSettings: (id: bigint, patch: WorkspaceSettingsPatch): Promise<AgentWorkspaceModel> =>
@@ -94,12 +101,44 @@ export const createAgentStores = (db: PrismaDatabaseClient) => {
   };
 
   const sessions = {
-    create: (workspaceId: bigint): Promise<AgentSessionModel> =>
-      db.agentSession.create({ data: { status: "RUNNING", workspaceId } }),
+    createAndSetCurrent: (workspaceId: bigint): Promise<AgentSessionModel> =>
+      db.$transaction(async (tx: Prisma.TransactionClient) => {
+        const session = await tx.agentSession.create({
+          data: { status: "IDLE", workspaceId },
+        });
+        await tx.agentWorkspace.update({
+          data: { currentSessionId: session.id },
+          where: { id: workspaceId },
+        });
+        return session;
+      }),
     findById: (id: string): Promise<AgentSessionModel | null> =>
       db.agentSession.findUnique({ where: { id } }),
     listByWorkspace: (workspaceId: bigint): Promise<AgentSessionModel[]> =>
       db.agentSession.findMany({ orderBy: { updateTime: "desc" }, where: { workspaceId } }),
+    resumeAndSetCurrent: (workspaceId: bigint, sessionId: string): Promise<ResumeSessionResult> =>
+      db.$transaction(async (tx: Prisma.TransactionClient): Promise<ResumeSessionResult> => {
+        const existing = await tx.agentSession.findUnique({ where: { id: sessionId } });
+        if (existing === null || existing.workspaceId !== workspaceId) {
+          return { outcome: "not_found" };
+        }
+        if (isSessionBusyForResume(existing.status)) {
+          return { outcome: "busy", session: existing };
+        }
+        const resumed = await tx.agentSession.update({
+          data: {
+            completedTime: null,
+            lastActiveTime: new Date(),
+            status: "IDLE",
+          },
+          where: { id: sessionId },
+        });
+        await tx.agentWorkspace.update({
+          data: { currentSessionId: sessionId },
+          where: { id: workspaceId },
+        });
+        return { outcome: "resumed", session: resumed };
+      }),
     updateStatus: (
       id: string,
       status: AgentSessionStatus,
@@ -119,7 +158,6 @@ export const createAgentStores = (db: PrismaDatabaseClient) => {
         context: unknown;
         activeSkills: unknown;
         runtimeMetadata: unknown;
-        lastEventSequence: bigint;
       }>,
     ): Promise<AgentSessionModel> =>
       db.agentSession.update({
@@ -127,7 +165,6 @@ export const createAgentStores = (db: PrismaDatabaseClient) => {
           activeSkills: asJson(input.activeSkills),
           context: asJson(input.context),
           lastActiveTime: new Date(),
-          lastEventSequence: input.lastEventSequence,
           runtimeMetadata: asJson(input.runtimeMetadata),
         },
         where: { id },
@@ -137,31 +174,41 @@ export const createAgentStores = (db: PrismaDatabaseClient) => {
   };
 
   const transcript = {
-    append: (input: {
+    appendNext: (input: {
       sessionId: string;
-      sequence: bigint;
       turnId: string | null;
       kind: string;
       payload: unknown;
     }): Promise<AgentTranscriptEventModel> =>
-      db.agentTranscriptEvent.create({
-        data: {
-          kind: input.kind,
-          payload: asJson(input.payload),
-          sequence: input.sequence,
-          sessionId: input.sessionId,
-          turnId: input.turnId,
-        },
+      db.$transaction(async (tx: Prisma.TransactionClient) => {
+        const session = await tx.agentSession.update({
+          data: { lastEventSequence: { increment: 1 } },
+          select: { lastEventSequence: true },
+          where: { id: input.sessionId },
+        });
+        return tx.agentTranscriptEvent.create({
+          data: {
+            kind: input.kind,
+            payload: asJson(input.payload),
+            sequence: session.lastEventSequence,
+            sessionId: input.sessionId,
+            turnId: input.turnId,
+          },
+        });
       }),
     listAfter: (
       sessionId: string,
       afterSequence: bigint,
+      highWatermark: bigint,
       limit: number,
     ): Promise<AgentTranscriptEventModel[]> =>
       db.agentTranscriptEvent.findMany({
         orderBy: { sequence: "asc" },
-        take: limit,
-        where: { sequence: { gt: afterSequence }, sessionId },
+        take: Math.min(limit, 1_000),
+        where: {
+          sequence: { gt: afterSequence, lte: highWatermark },
+          sessionId,
+        },
       }),
     listRecent: (sessionId: string, limit: number): Promise<AgentTranscriptEventModel[]> =>
       db.agentTranscriptEvent

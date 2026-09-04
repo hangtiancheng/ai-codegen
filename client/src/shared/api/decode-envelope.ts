@@ -34,7 +34,7 @@ export function decodeEnvelope<TSchema extends z.ZodType>(
   dataSchema: TSchema,
   options: Readonly<{ suppressUnauthorizedRedirect?: boolean }> = {},
 ): z.output<TSchema> {
-  if (envelope.status >= 500) {
+  if (envelope.status === 404 || envelope.status >= 500) {
     throw new ApiException({
       kind: "http",
       status: envelope.status,

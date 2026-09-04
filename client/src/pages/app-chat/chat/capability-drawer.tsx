@@ -1,5 +1,6 @@
 import { Loader2, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { cn } from "@/shared/lib";
 import type { AppId } from "@/shared/schemas";
 import { Button } from "@/shared/ui";
@@ -577,6 +578,22 @@ function SessionsTab({
   const { data, loading, error, reload } = useAsync(() =>
     listAgentSessions(appId),
   );
+  const [resumingId, setResumingId] = useState<string>();
+
+  const resume = async (sessionId: string): Promise<void> => {
+    setResumingId(sessionId);
+    try {
+      await resumeAgentSession(appId, sessionId);
+      reload();
+    } catch (cause) {
+      toast.error(
+        cause instanceof Error ? cause.message : "Unable to resume session",
+      );
+    } finally {
+      setResumingId(undefined);
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -607,11 +624,16 @@ function SessionsTab({
                   size="sm"
                   variant="ghost"
                   className="ml-auto"
+                  disabled={
+                    resumingId !== undefined ||
+                    session.status === "RUNNING" ||
+                    session.status === "WAITING"
+                  }
                   onClick={() => {
-                    void resumeAgentSession(appId, session.id).then(reload);
+                    void resume(session.id);
                   }}
                 >
-                  Resume
+                  {resumingId === session.id ? "Resuming…" : "Resume"}
                 </Button>
               ) : null}
             </div>

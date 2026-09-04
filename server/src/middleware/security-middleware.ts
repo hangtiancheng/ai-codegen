@@ -1,6 +1,7 @@
+import type { Context, MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
-import { createErrorResponse, ErrorCode } from "../common/index.js";
+import { createErrorResponse, ErrorCode, MAX_PROJECT_FILE_BODY_BYTES } from "../common/index.js";
 import { env } from "../config/index.js";
 
 export const corsOrigin = (): string | string[] =>
@@ -14,9 +15,13 @@ export const createCorsMiddleware = () =>
     origin: corsOrigin(),
   });
 
-export const createBodyLimitMiddleware = () =>
-  bodyLimit({
-    maxSize: env.REQUEST_BODY_LIMIT_BYTES,
-    onError: (c) =>
-      c.json(createErrorResponse(ErrorCode.ParamsError, "Request body is too large"), 413),
-  });
+export const createBodyLimitMiddleware = (): MiddlewareHandler => {
+  const onError = (c: Context) =>
+    c.json(createErrorResponse(ErrorCode.ParamsError, "Request body is too large"), 413);
+  const defaultLimit = bodyLimit({ maxSize: env.REQUEST_BODY_LIMIT_BYTES, onError });
+  const fileWriteLimit = bodyLimit({ maxSize: MAX_PROJECT_FILE_BODY_BYTES, onError });
+  return (c: Parameters<typeof defaultLimit>[0], next: Parameters<typeof defaultLimit>[1]) =>
+    c.req.method === "PUT" && /\/app\/files\/[^/]+\/file$/u.test(c.req.path)
+      ? fileWriteLimit(c, next)
+      : defaultLimit(c, next);
+};

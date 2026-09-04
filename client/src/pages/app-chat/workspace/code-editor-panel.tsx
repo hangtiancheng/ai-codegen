@@ -6,6 +6,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import { toast } from "sonner";
 import { cn } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 import { loadMonaco, type MonacoModule } from "./monaco-loader";
@@ -18,9 +19,17 @@ const EDITOR_THEME = "vs";
 
 type LatestRefs = {
   activePath: string | undefined;
-  saveFile: (path: string) => void;
+  saveFile: (path: string) => Promise<void>;
   updateFileContents: (path: string, contents: string) => void;
 };
+
+function reportWorkspaceError(operation: Promise<void>): void {
+  void operation.catch((cause: unknown) => {
+    toast.error(
+      cause instanceof Error ? cause.message : "Workspace operation failed",
+    );
+  });
+}
 
 export type CodeEditorPanelProps = {
   /** Whether the Code tab is currently visible, used to trigger relayout. */
@@ -87,7 +96,9 @@ export function CodeEditorPanel({ active }: CodeEditorPanelProps): ReactNode {
         });
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
           const path = latestRef.current.activePath;
-          if (path !== undefined) latestRef.current.saveFile(path);
+          if (path !== undefined) {
+            reportWorkspaceError(latestRef.current.saveFile(path));
+          }
         });
         editorRef.current = editor;
         setReady(true);
@@ -227,14 +238,25 @@ export function CodeEditorPanel({ active }: CodeEditorPanelProps): ReactNode {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => workspace.acceptAgentChanges(activePath)}
+                disabled={agentRunning || workspace.busy}
+                onClick={() =>
+                  reportWorkspaceError(workspace.acceptAgentChanges(activePath))
+                }
               >
                 Accept Agent
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => workspace.keepLocalChanges(activePath)}
+                disabled={agentRunning || workspace.busy}
+                onClick={() =>
+                  reportWorkspaceError(
+                    workspace.keepLocalChanges(
+                      activePath,
+                      diffModelsRef.current?.modified.getValue(),
+                    ),
+                  )
+                }
               >
                 Keep Local
               </Button>
@@ -248,11 +270,14 @@ export function CodeEditorPanel({ active }: CodeEditorPanelProps): ReactNode {
                 title="Save (Cmd/Ctrl+S)"
                 disabled={
                   agentRunning ||
+                  workspace.busy ||
                   activePath === undefined ||
                   activeFile?.dirty !== true
                 }
                 onClick={() => {
-                  if (activePath !== undefined) workspace.saveFile(activePath);
+                  if (activePath !== undefined) {
+                    reportWorkspaceError(workspace.saveFile(activePath));
+                  }
                 }}
               >
                 <Save className="size-4" aria-hidden="true" />
@@ -262,8 +287,8 @@ export function CodeEditorPanel({ active }: CodeEditorPanelProps): ReactNode {
                 size="sm"
                 aria-label="Save all"
                 title="Save all"
-                disabled={agentRunning}
-                onClick={workspace.saveAll}
+                disabled={agentRunning || workspace.busy}
+                onClick={() => reportWorkspaceError(workspace.saveAll())}
               >
                 <SaveAll className="size-4" aria-hidden="true" />
               </Button>

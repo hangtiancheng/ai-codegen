@@ -28,12 +28,12 @@ export const initialAdminChatFilters: AdminChatFilterValues = {
 
 export function buildAdminChatQuery(
   filters: AdminChatFilterValues,
-  pageNum: number,
+  pageNumber: number,
 ): ChatHistoryQueryRequest {
   const appId = optionalPositiveInteger(filters.appId);
   const userId = optionalPositiveInteger(filters.userId);
   return chatHistoryQueryRequestSchema.parse({
-    pageNum,
+    current: pageNumber,
     pageSize: adminChatPageSize,
     sortField: "createTime",
     sortOrder: "descend",

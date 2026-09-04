@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { agentClientMessageSchema } from "../src/agent-runtime/protocol.js";
+import {
+  agentClientMessageSchema,
+  agentServerMessageSchema,
+} from "../src/agent-runtime/protocol.js";
 
 // The client->server message union is `.strict()`, so unknown keys are rejected.
 
@@ -100,5 +103,87 @@ describe("agentClientMessageSchema - malformed", () => {
     expect(agentClientMessageSchema.safeParse({ type: "heartbeat", timestamp: -1 }).success).toBe(
       false,
     );
+  });
+});
+
+const sessionId = "11111111-1111-4111-8111-111111111111";
+const turnId = "22222222-2222-4222-8222-222222222222";
+
+const transcriptEvent = (sequence: number) => ({
+  createdAt: "2026-01-01T00:00:00.000Z",
+  kind: "assistant_message",
+  payload: { text: `event-${String(sequence)}` },
+  sequence: String(sequence),
+  sessionId,
+  turnId,
+});
+
+describe("agentServerMessageSchema", () => {
+  it("requires complete ready replay and pending interaction metadata", () => {
+    expect(
+      agentServerMessageSchema.safeParse({
+        currentTurnId: turnId,
+        highWatermark: "42",
+        pendingInteractions: [
+          {
+            interactionId: "33333333-3333-4333-8333-333333333333",
+            request: {
+              args: { path: "src/App.tsx" },
+              description: "Write a file",
+              reason: "requested",
+              toolName: "write",
+            },
+            sessionId,
+            turnId,
+            type: "permission",
+          },
+        ],
+        permissionMode: "DEFAULT",
+        readOnly: false,
+        runtimeStatus: "waiting",
+        sessionId,
+        type: "ready",
+      }).success,
+    ).toBe(true);
+    expect(
+      agentServerMessageSchema.safeParse({
+        permissionMode: "DEFAULT",
+        readOnly: false,
+        sessionId,
+        type: "ready",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires session replay metadata and caps batches at 1000 events", () => {
+    expect(
+      agentServerMessageSchema.safeParse({
+        complete: true,
+        events: [transcriptEvent(1)],
+        highWatermark: "1",
+        sessionId,
+        type: "transcript_batch",
+      }).success,
+    ).toBe(true);
+    expect(
+      agentServerMessageSchema.safeParse({
+        complete: false,
+        events: Array.from({ length: 1_001 }, (_, index) => transcriptEvent(index + 1)),
+        highWatermark: "1001",
+        sessionId,
+        type: "transcript_batch",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts interaction resolution broadcasts", () => {
+    expect(
+      agentServerMessageSchema.safeParse({
+        interactionId: "33333333-3333-4333-8333-333333333333",
+        outcome: "allowed",
+        sessionId,
+        type: "interaction_resolved",
+      }).success,
+    ).toBe(true);
   });
 });

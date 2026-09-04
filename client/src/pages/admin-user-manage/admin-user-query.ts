@@ -27,11 +27,11 @@ export const initialAdminUserFilters: AdminUserFilterValues = {
 
 export function buildAdminUserQuery(
   filters: AdminUserFilterValues,
-  pageNum: number,
+  pageNumber: number,
 ): UserQueryRequest {
   const id = optionalPositiveInteger(filters.id);
   return userQueryRequestSchema.parse({
-    pageNum,
+    current: pageNumber,
     pageSize: adminUserPageSize,
     sortField: "createTime",
     sortOrder: "descend",

@@ -1,10 +1,12 @@
 import type { FileSystemTree } from "@webcontainer/api";
 import type { AgentFileTreeNode } from "@/shared/schemas";
 import {
+  hashContents,
   isBinaryPath,
   isIgnoredSegment,
   normalizePath,
 } from "./workspace-paths";
+import type { WorkspaceFileState } from "./workspace-types";
 
 /** A node in the explorer tree. Directories carry their sorted children. */
 export type WorkspaceNode =
@@ -21,9 +23,13 @@ export type WorkspaceNode =
       readonly children: readonly WorkspaceNode[];
     };
 
-/** Server-known contents and hash of a single file. Binary files carry no text. */
+/** Server-known transport contents and hash of a single file. */
 export type WorkspaceFileContent = {
   readonly binary: boolean;
+  readonly encoding: "utf8" | "base64";
+  /** Original server payload, including base64 data for binary files. */
+  readonly contents: string;
+  /** Decoded editor text when the file is not binary. */
   readonly text: string | undefined;
   /** Server content hash used as the optimistic-locking base revision. */
   readonly hash: string;
@@ -114,12 +120,49 @@ function collectNodes(
     const binary = child.encoding === "base64" || isBinaryPath(path);
     files.set(path, {
       binary,
+      encoding: child.encoding,
+      contents: child.contents,
       text: binary ? undefined : child.contents,
       hash: child.hash,
     });
     nodes.push({ kind: "file", name: child.name, path, binary });
   }
   return sortNodes(nodes);
+}
+
+const DEPENDENCY_FILE_PATHS: readonly string[] = [
+  "package.json",
+  "package-lock.json",
+  "npm-shrinkwrap.json",
+  "pnpm-lock.yaml",
+  "yarn.lock",
+  "bun.lock",
+  "bun.lockb",
+];
+
+/** Whether package metadata changed enough to require remounting dependencies. */
+export function dependencyFilesChanged(
+  previous: ReadonlyMap<string, WorkspaceFileContent>,
+  next: ReadonlyMap<string, WorkspaceFileContent>,
+): boolean {
+  return DEPENDENCY_FILE_PATHS.some(
+    (path) => previous.get(path)?.hash !== next.get(path)?.hash,
+  );
+}
+
+export function reconcileSavedFile(
+  attempted: WorkspaceFileState,
+  latest: WorkspaceFileState,
+  serverHash: string,
+): WorkspaceFileState {
+  return {
+    ...latest,
+    baseText: attempted.contents,
+    baseHash: hashContents(attempted.contents),
+    serverHash,
+    dirty: latest.contents !== attempted.contents,
+    conflict: undefined,
+  };
 }
 
 export type MergeResult =

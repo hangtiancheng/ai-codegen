@@ -12,30 +12,25 @@ type Page<TRecord extends z.ZodTypeAny> = Readonly<{
 export function pageSchema<TRecord extends z.ZodTypeAny>(
   record: TRecord,
 ): z.ZodType<Page<TRecord>> {
-  const currentPageSchema = z.object({
-    records: z.array(record),
-    pageNumber: positiveIntSchema,
-    pageSize: positiveIntSchema,
-    totalPage: nonNegativeIntSchema,
-    totalRow: nonNegativeIntSchema,
-  });
-  const backendPageSchema = z
+  return z
     .object({
       records: z.array(record),
+      current: positiveIntSchema,
+      pageSize: positiveIntSchema,
       total: nonNegativeIntSchema,
+      totalPage: nonNegativeIntSchema,
     })
-    .transform(({ records, total }) => ({
+    .transform(({ records, current, pageSize, total, totalPage }) => ({
       records,
-      pageNumber: 1,
-      pageSize: Math.max(records.length, 1),
-      totalPage: total > 0 ? 1 : 0,
+      pageNumber: current,
+      pageSize,
+      totalPage,
       totalRow: total,
     }));
-  return z.union([currentPageSchema, backendPageSchema]);
 }
 
 export const paginationQuerySchema = z.object({
-  pageNum: positiveIntSchema.default(1),
+  current: positiveIntSchema.default(1),
   pageSize: positiveIntSchema.default(10),
   sortField: z.string().optional(),
   sortOrder: z.enum(["ascend", "descend"]).optional(),

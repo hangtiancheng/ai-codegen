@@ -108,17 +108,76 @@ export const registerAgentWs = (router: Hono<AppHonoEnv>, deps: AgentWsDeps): vo
             return;
           }
           case "permission_response": {
-            if (!writable) return;
+            if (!writable) {
+              connection.send({
+                code: "read_only",
+                message: "Read-only connection cannot answer permission requests",
+                recoverable: true,
+                requestId: message.requestId,
+                type: "error",
+              });
+              return;
+            }
             const decision: PermissionDecision =
               message.decision === "allow" && message.remember === true
                 ? "allowAlways"
                 : message.decision;
-            await runtime.resolvePermission(message.interactionId, decision);
+            try {
+              const resolved = await runtime.resolvePermission(message.interactionId, decision);
+              if (!resolved) {
+                connection.send({
+                  code: "interaction_not_pending",
+                  message: "Permission request is no longer pending",
+                  recoverable: true,
+                  requestId: message.requestId,
+                  type: "error",
+                });
+              }
+            } catch (error) {
+              connection.send({
+                code: "interaction_response_failed",
+                message: error instanceof Error ? error.message : "Permission response failed",
+                recoverable: true,
+                requestId: message.requestId,
+                type: "error",
+              });
+            }
             return;
           }
           case "question_response": {
-            if (!writable) return;
-            await runtime.resolveQuestion(message.interactionId, message.answers);
+            if (!writable) {
+              connection.send({
+                code: "read_only",
+                message: "Read-only connection cannot answer questions",
+                recoverable: true,
+                requestId: message.requestId,
+                type: "error",
+              });
+              return;
+            }
+            try {
+              const resolved = await runtime.resolveQuestion(
+                message.interactionId,
+                message.answers,
+              );
+              if (!resolved) {
+                connection.send({
+                  code: "interaction_not_pending",
+                  message: "Question request is no longer pending",
+                  recoverable: true,
+                  requestId: message.requestId,
+                  type: "error",
+                });
+              }
+            } catch (error) {
+              connection.send({
+                code: "interaction_response_failed",
+                message: error instanceof Error ? error.message : "Question response failed",
+                recoverable: true,
+                requestId: message.requestId,
+                type: "error",
+              });
+            }
             return;
           }
           case "command_complete":
@@ -158,7 +217,13 @@ export const registerAgentWs = (router: Hono<AppHonoEnv>, deps: AgentWsDeps): vo
           runtime.addConnection(connection);
           try {
             await runtime.ready(connection);
-            connection.send({ candidates: runtime.getCommandCandidates(), type: "candidates" });
+            connection.send({
+              candidates: runtime.getCommandCandidates().map((candidate) => ({
+                ...candidate,
+                aliases: [...candidate.aliases],
+              })),
+              type: "candidates",
+            });
           } catch (error) {
             connection.send({
               code: "init_failed",
