@@ -215,6 +215,9 @@ export function ChatPane({
           run("/clear");
           setDrawerOpen(false);
         }}
+        onPermissionModeChange={(mode) =>
+          dispatch({ type: "permission_mode", permissionMode: mode })
+        }
       />
     </section>
   );

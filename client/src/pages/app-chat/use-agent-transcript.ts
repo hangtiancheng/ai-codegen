@@ -144,6 +144,7 @@ export type AgentTranscriptAction =
       readonly turnId: string | undefined;
       readonly detail: string | undefined;
     }
+  | { readonly type: "permission_mode"; readonly permissionMode: string }
   | {
       readonly type: "permission_request";
       readonly sessionId: string;
@@ -344,6 +345,8 @@ export function agentTranscriptReducer(
         // Reaching a terminal status drops any half-streamed buffers.
         ...(action.status === "idle" && { thinkingText: "" }),
       };
+    case "permission_mode":
+      return { ...state, permissionMode: action.permissionMode };
     case "permission_request":
       return state.sessionId === action.sessionId
         ? { ...state, pendingPermission: action.request }

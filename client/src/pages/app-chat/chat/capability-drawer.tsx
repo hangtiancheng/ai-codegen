@@ -24,6 +24,7 @@ import {
   type McpCreateInput,
   type McpTransport,
   PERMISSION_MODES,
+  type PermissionMode,
   reloadAgentSkills,
   resumeAgentSession,
   testMcpServer,
@@ -54,6 +55,7 @@ export type CapabilityDrawerProps = {
   readonly onClose: () => void;
   readonly canManage: boolean;
   readonly onNewSession: () => void;
+  readonly onPermissionModeChange?: (mode: PermissionMode) => void;
 };
 
 export function CapabilityDrawer({
@@ -62,6 +64,7 @@ export function CapabilityDrawer({
   onClose,
   canManage,
   onNewSession,
+  onPermissionModeChange,
 }: CapabilityDrawerProps): ReactNode {
   const [tab, setTab] = useState<TabId>("mcp");
   if (!open) return null;
@@ -110,7 +113,11 @@ export function CapabilityDrawer({
             <SkillsTab appId={appId} canManage={canManage} />
           ) : null}
           {tab === "settings" ? (
-            <SettingsTab appId={appId} canManage={canManage} />
+            <SettingsTab
+              appId={appId}
+              canManage={canManage}
+              onPermissionModeChange={onPermissionModeChange}
+            />
           ) : null}
           {tab === "sessions" ? (
             <SessionsTab
@@ -516,9 +523,12 @@ function SkillsTab({
 function SettingsTab({
   appId,
   canManage,
+  onPermissionModeChange,
 }: {
   readonly appId: AppId;
   readonly canManage: boolean;
+  readonly onPermissionModeChange?:
+    ((mode: PermissionMode) => void) | undefined;
 }): ReactNode {
   const { data, loading, error, setData } = useAsync(() =>
     getAgentSettings(appId),
@@ -528,7 +538,15 @@ function SettingsTab({
   const patch = (body: Parameters<typeof updateAgentSettings>[1]): void => {
     setSaving(true);
     updateAgentSettings(appId, body)
-      .then(setData)
+      .then((next) => {
+        setData(next);
+        onPermissionModeChange?.(next.permissionMode);
+      })
+      .catch((cause: unknown) =>
+        toast.error(
+          cause instanceof Error ? cause.message : "Failed to update settings",
+        ),
+      )
       .finally(() => setSaving(false));
   };
 

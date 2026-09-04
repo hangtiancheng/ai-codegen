@@ -78,10 +78,7 @@ export function HomePage(): ReactNode {
     (isAdmin || canManageApp(selectedApp, user?.id));
 
   return (
-    <PageContainer
-      title="Swifty Codegen"
-      description="Create website apps with one focused prompt."
-    >
+    <PageContainer title="Create apps with one prompt">
       <PromptComposer
         prompt={prompt}
         submitting={addAppMutation.isPending}
