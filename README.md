@@ -1,3 +1,3 @@
 # Swifty Codegen
 
-[perview](./docs/image.png)
+![perview](./docs/image.png)
