@@ -17,14 +17,14 @@ export function PromptComposer({
   onSubmit,
 }: PromptComposerProps): ReactNode {
   return (
-    <section className="mx-auto max-w-3xl">
+    <section className="mx-auto w-full">
       <div className="relative">
         <TextArea
           value={prompt}
           onChange={(event) => onPromptChange(event.target.value)}
           placeholder="Describe the app you want to generate..."
-          rows={4}
-          maxLength={1000}
+          rows={10}
+          maxLength={3000}
           className="border-primary/15 bg-card resize-none rounded-2xl p-5 pr-16 text-base shadow-sm"
           aria-label="App description"
         />

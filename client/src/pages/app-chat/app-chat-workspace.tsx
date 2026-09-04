@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -34,6 +34,32 @@ export function AppChatWorkspace({ app }: { readonly app: AppVo }): ReactNode {
     dispatch,
   });
   const agentRunning = isAgentBusy(state.runtimeStatus);
+
+  // A freshly created app carries its initial prompt but no transcript yet.
+  // Once the socket connects and replays an empty history, send that prompt
+  // once: it becomes the first user message and scaffolds the project. Guarding
+  // on an empty, idle, fully-replayed session prevents re-sending on reconnect,
+  // for existing apps, or after `/clear`.
+  const initialPromptSentRef = useRef(false);
+  const runAgent = socket.run;
+  useEffect(() => {
+    if (initialPromptSentRef.current) return;
+    if (!canManage) return;
+    if (state.connectionState !== "connected") return;
+    if (state.replaying || !state.replayComplete) return;
+    if (state.runtimeStatus !== "idle") return;
+    if (state.events.length > 0) return;
+    if (runAgent(app.initPrompt)) initialPromptSentRef.current = true;
+  }, [
+    app.initPrompt,
+    canManage,
+    runAgent,
+    state.connectionState,
+    state.events.length,
+    state.replayComplete,
+    state.replaying,
+    state.runtimeStatus,
+  ]);
 
   return (
     <div className="flex h-[calc(100dvh-8.5rem)] min-h-[40rem] flex-col gap-3 px-4 py-4">

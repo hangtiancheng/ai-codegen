@@ -1,6 +1,7 @@
 import { Edit3, Eye, Loader2, RefreshCw } from "lucide-react";
-import { type RefObject, type ReactNode } from "react";
+import { useMemo, type RefObject, type ReactNode } from "react";
 import { Button } from "@/shared/ui";
+import { parseAnsiLines } from "./ansi-log";
 import { getPreviewStatusMessage, type PreviewStatus } from "./preview-status";
 
 export type PreviewPanelProps = {
@@ -109,11 +110,7 @@ function PreviewPlaceholder({
         <p className="text-destructive font-medium">
           {error ?? "Preview failed to start."}
         </p>
-        {logs.length > 0 ? (
-          <pre className="bg-background max-h-56 overflow-auto rounded-lg border p-3 text-xs whitespace-pre-wrap">
-            {logs}
-          </pre>
-        ) : null}
+        {logs.length > 0 ? <AnsiLogView logs={logs} /> : null}
         <Button
           variant="outline"
           size="sm"
@@ -138,5 +135,28 @@ function PreviewPlaceholder({
     <div className="text-muted-foreground flex h-full min-h-96 items-center justify-center text-sm">
       No preview available yet.
     </div>
+  );
+}
+
+/** Render an install/dev-server log, translating ANSI colour codes to styles. */
+function AnsiLogView({ logs }: { readonly logs: string }): ReactNode {
+  const lines = useMemo(() => parseAnsiLines(logs), [logs]);
+  return (
+    <pre className="bg-background max-h-56 overflow-auto rounded-lg border p-3 font-mono text-xs whitespace-pre-wrap">
+      {lines.map((spans, lineIndex) => (
+        <div key={lineIndex}>
+          {spans.length === 0
+            ? "\u00a0"
+            : spans.map((span, spanIndex) => (
+                <span
+                  key={spanIndex}
+                  className={span.className === "" ? undefined : span.className}
+                >
+                  {span.text}
+                </span>
+              ))}
+        </div>
+      ))}
+    </pre>
   );
 }

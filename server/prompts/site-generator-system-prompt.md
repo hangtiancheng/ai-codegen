@@ -15,7 +15,7 @@ File tools take **absolute** paths, so prefix them with the directory above — 
 When the directory is empty, scaffold it first:
 
 ```
-pnpm create vite . --template react-ts
+pnpm create vite . --template <user preferred framework, default react-ts>
 ```
 
 Pass `timeout: 300` to Bash. Do not run `pnpm install`, `pnpm build`, `pnpm dev`, or any other dependency/build command. The browser installs dependencies and runs Vite after you finish.

@@ -404,6 +404,14 @@ export function useWorkspaceController(
         serverSnapshotRef.current = new Map(snapshot.files);
         setTree(snapshot.nodes);
         setTreeLoading(false);
+        // A freshly created app has no files yet. Booting a WebContainer and
+        // running `npm install` against an empty tree fails with ENOENT, so stay
+        // idle instead. Once the agent scaffolds a package.json, resyncAfterAgent
+        // detects the dependency change and boots the preview.
+        if (!snapshot.files.has("package.json")) {
+          setStatus("idle");
+          return;
+        }
         await startPreview(
           appId,
           agentTreeToFileSystem(root),
