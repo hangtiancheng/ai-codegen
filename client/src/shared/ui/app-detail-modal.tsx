@@ -1,10 +1,16 @@
 import { Edit, Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
-import { createPortal } from "react-dom";
 import { formatDateTime } from "@/shared/lib";
 import { type AppVo } from "@/shared/schemas";
 import { Button } from "./button";
 import { ConfirmationDialog } from "./confirmation-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./dialog";
 import { UserInfo } from "./user-info";
 
 export type AppDetailModalProps = {
@@ -25,45 +31,37 @@ export function AppDetailModal({
   onDelete,
 }: AppDetailModalProps): ReactNode {
   const [confirmOpen, setConfirmOpen] = useState(false);
-  if (!open) {
-    return null;
-  }
 
-  return createPortal(
-    <div className="bg-foreground/30 fixed inset-0 z-40 flex items-center justify-center overflow-y-auto p-4 backdrop-blur-sm">
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="app-detail-title"
-        className="border-border bg-card max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border p-6 shadow-xl"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <h2 id="app-detail-title" className="text-xl font-semibold">
-            App Details
-          </h2>
-          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-        </div>
-        <dl className="mt-5 grid gap-4 text-sm">
-          <InfoRow label="Creator">
-            <UserInfo user={app?.user} size="sm" />
-          </InfoRow>
-          <InfoRow label="Created">{formatDateTime(app?.createTime)}</InfoRow>
-        </dl>
-        {showActions ? (
-          <div className="border-border mt-6 flex gap-3 border-t pt-4">
-            <Button onClick={onEdit}>
-              <Edit className="size-4" aria-hidden="true" />
-              Edit
-            </Button>
-            <Button variant="danger" onClick={() => setConfirmOpen(true)}>
-              <Trash2 className="size-4" aria-hidden="true" />
-              Delete
-            </Button>
-          </div>
-        ) : null}
-      </section>
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>App Details</DialogTitle>
+          </DialogHeader>
+          <dl className="grid gap-4 text-sm">
+            <InfoRow label="Creator">
+              <UserInfo user={app?.user} size="sm" />
+            </InfoRow>
+            <InfoRow label="Created">{formatDateTime(app?.createTime)}</InfoRow>
+          </dl>
+          {showActions ? (
+            <DialogFooter className="border-border border-t pt-4">
+              <Button onClick={onEdit}>
+                <Edit data-icon="inline-start" />
+                Edit
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => setConfirmOpen(true)}
+              >
+                <Trash2 data-icon="inline-start" />
+                Delete
+              </Button>
+            </DialogFooter>
+          ) : null}
+        </DialogContent>
+      </Dialog>
       <ConfirmationDialog
         open={confirmOpen}
         title="Delete app?"
@@ -75,8 +73,7 @@ export function AppDetailModal({
           onDelete?.();
         }}
       />
-    </div>,
-    document.body,
+    </>
   );
 }
 

@@ -4,7 +4,13 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
 } from "react";
-import { cn } from "cn";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/shared/ui/field";
+import { Input } from "@/shared/ui/input";
 
 export type TextFieldProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -22,52 +28,21 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
   ) {
     const reactId = useId();
     const inputId = `${reactId}-input`;
-    const errorId = `${reactId}-error`;
-    const hintId = `${reactId}-hint`;
     const hasError = Boolean(errorMessage);
-    const describedBy = [hint ? hintId : null, hasError ? errorId : null]
-      .filter((value): value is string => value !== null)
-      .join(" ");
 
     return (
-      <div className="flex w-full flex-col gap-1.5">
-        <label
-          htmlFor={inputId}
-          className="text-foreground text-sm font-medium"
-        >
-          {label}
-        </label>
-        <input
+      <Field data-invalid={hasError || undefined}>
+        <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
+        <Input
           ref={ref}
           id={inputId}
-          aria-invalid={hasError}
-          aria-describedby={describedBy === "" ? undefined : describedBy}
-          className={cn(
-            "border-input bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm shadow-sm transition-colors outline-none",
-            "placeholder:text-muted-foreground",
-            "focus:border-ring focus:ring-ring/30 focus:ring-2",
-            "disabled:cursor-not-allowed disabled:opacity-60",
-            hasError &&
-              "border-destructive focus:border-destructive focus:ring-destructive/30",
-            className,
-          )}
+          aria-invalid={hasError || undefined}
+          className={className}
           {...inputProps}
         />
-        {hint && !hasError ? (
-          <p id={hintId} className="text-muted-foreground text-xs">
-            {hint}
-          </p>
-        ) : null}
-        {hasError ? (
-          <p
-            id={errorId}
-            role="alert"
-            className="text-destructive text-xs font-medium"
-          >
-            {errorMessage}
-          </p>
-        ) : null}
-      </div>
+        {hint && !hasError ? <FieldDescription>{hint}</FieldDescription> : null}
+        {hasError ? <FieldError>{errorMessage}</FieldError> : null}
+      </Field>
     );
   },
 );

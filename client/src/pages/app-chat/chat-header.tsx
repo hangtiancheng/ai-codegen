@@ -1,7 +1,7 @@
 import { Download, Info, Pencil } from "lucide-react";
 import { type ReactNode } from "react";
 import { type AppVo } from "@/shared/schemas";
-import { Button } from "@/shared/ui";
+import { Button, LoadingButton } from "@/shared/ui";
 
 export type ChatHeaderProps = {
   readonly app: AppVo;
@@ -36,7 +36,7 @@ export function ChatHeader({
             Edit
           </Button>
         ) : null}
-        <Button
+        <LoadingButton
           variant="secondary"
           size="sm"
           disabled={!canManage}
@@ -45,7 +45,7 @@ export function ChatHeader({
         >
           <Download className="size-4" aria-hidden="true" />
           Download Code
-        </Button>
+        </LoadingButton>
       </div>
     </header>
   );

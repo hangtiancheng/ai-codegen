@@ -1,10 +1,12 @@
 import { type ReactNode } from "react";
 import {
   Avatar,
+  AvatarFallback,
+  AvatarImage,
   Badge,
-  Button,
   DataTable,
   type DataTableColumn,
+  LoadingButton,
 } from "@/shared/ui";
 import { type UserId, type UserVo } from "@/shared/schemas";
 import {
@@ -45,10 +47,17 @@ function userColumns(
       header: "Profile",
       render: (user) => (
         <div className="flex items-center gap-3">
-          <Avatar
-            src={user.userAvatar}
-            name={user.username ?? user.userAccount}
-          />
+          <Avatar>
+            {user.userAvatar ? (
+              <AvatarImage src={user.userAvatar} alt="" />
+            ) : null}
+            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+              {(user.username ?? user.userAccount)
+                .trim()
+                .charAt(0)
+                .toUpperCase() || "U"}
+            </AvatarFallback>
+          </Avatar>
           <div>
             <p className="text-foreground font-medium">
               {formatNullable(user.username)}
@@ -64,7 +73,7 @@ function userColumns(
       key: "role",
       header: "Role",
       render: (user) => (
-        <Badge variant={user.userRole === "admin" ? "warning" : "neutral"}>
+        <Badge variant={user.userRole === "admin" ? "default" : "secondary"}>
           {user.userRole}
         </Badge>
       ),
@@ -78,14 +87,14 @@ function userColumns(
       key: "actions",
       header: "Actions",
       render: (user) => (
-        <Button
-          variant="danger"
+        <LoadingButton
+          variant="destructive"
           size="sm"
           isLoading={deletingId === user.id}
           onClick={() => onDelete(user)}
         >
           Delete
-        </Button>
+        </LoadingButton>
       ),
     },
   ];

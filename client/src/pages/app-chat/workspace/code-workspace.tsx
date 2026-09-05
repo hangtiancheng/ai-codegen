@@ -19,7 +19,7 @@ export function CodeWorkspace({ active }: CodeWorkspaceProps): ReactNode {
         id="workspace-explorer"
         defaultSize="20%"
         minSize="12%"
-        className="bg-card min-h-0"
+        className="bg-ctp-mantle min-h-0"
       >
         <FileExplorer />
       </Panel>

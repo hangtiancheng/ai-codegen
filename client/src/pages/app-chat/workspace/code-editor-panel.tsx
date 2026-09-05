@@ -1,4 +1,4 @@
-import { Loader2, Save, SaveAll, X } from "lucide-react";
+import { Save, SaveAll, X } from "lucide-react";
 import {
   useEffect,
   useRef,
@@ -8,14 +8,15 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { cn } from "cn";
-import { Button } from "@/shared/ui";
+import { Button, Spinner } from "@/shared/ui";
+import { CATPPUCCIN_THEME_NAME } from "./catppuccin-theme";
 import { loadMonaco, type MonacoModule } from "./monaco-loader";
 import { baseName, languageForPath } from "./workspace-paths";
 import { useWorkspace } from "./workspace-context";
 import type { WorkspaceFileState } from "./workspace-types";
 import type * as Monaco from "monaco-editor";
 
-const EDITOR_THEME = "vs";
+const EDITOR_THEME = CATPPUCCIN_THEME_NAME;
 
 type LatestRefs = {
   activePath: string | undefined;
@@ -185,11 +186,11 @@ export function CodeEditorPanel({ active }: CodeEditorPanelProps): ReactNode {
   }, [active, ready]);
 
   return (
-    <div className="bg-background flex h-full min-h-0 flex-col">
-      <div className="border-border flex items-center gap-1 overflow-x-auto border-b">
+    <div className="bg-ctp-base flex h-full min-h-0 flex-col">
+      <div className="border-ctp-crust flex items-center gap-1 overflow-x-auto border-b">
         <div className="flex min-w-0 flex-1 items-center">
           {workspace.openPaths.length === 0 ? (
-            <span className="text-muted-foreground px-3 py-2 text-xs">
+            <span className="text-ctp-overlay0 px-3 py-2 text-xs">
               Select a file to edit
             </span>
           ) : (
@@ -199,10 +200,10 @@ export function CodeEditorPanel({ active }: CodeEditorPanelProps): ReactNode {
                 <div
                   key={path}
                   className={cn(
-                    "border-border flex items-center gap-1 border-r px-3 py-1.5 text-xs",
+                    "border-ctp-crust flex items-center gap-1 border-r px-3 py-1.5 text-xs",
                     activePath === path
-                      ? "bg-background text-foreground"
-                      : "text-muted-foreground hover:bg-secondary/50",
+                      ? "bg-ctp-base text-ctp-text"
+                      : "bg-ctp-mantle text-ctp-subtext0 hover:bg-ctp-crust",
                   )}
                 >
                   <button
@@ -213,16 +214,16 @@ export function CodeEditorPanel({ active }: CodeEditorPanelProps): ReactNode {
                     {baseName(path)}
                   </button>
                   {file?.conflict !== undefined ? (
-                    <span className="text-destructive text-[10px] font-semibold">
+                    <span className="text-ctp-red text-[10px] font-semibold">
                       !
                     </span>
                   ) : file?.dirty === true ? (
-                    <span className="size-1.5 rounded-full bg-amber-500" />
+                    <span className="bg-ctp-yellow size-1.5 rounded-full" />
                   ) : null}
                   <button
                     type="button"
                     aria-label={`Close ${baseName(path)}`}
-                    className="hover:text-foreground"
+                    className="hover:text-ctp-text"
                     onClick={() => workspace.closeFile(path)}
                   >
                     <X className="size-3.5" aria-hidden="true" />
@@ -306,20 +307,20 @@ export function CodeEditorPanel({ active }: CodeEditorPanelProps): ReactNode {
           className={cn("h-full w-full", !hasConflict && "hidden")}
         />
         {loadError !== undefined ? (
-          <div className="text-destructive absolute inset-0 flex items-center justify-center p-4 text-sm">
+          <div className="text-ctp-red absolute inset-0 flex items-center justify-center p-4 text-sm">
             {loadError}
           </div>
         ) : !ready ? (
-          <div className="text-muted-foreground absolute inset-0 flex items-center justify-center gap-2 text-sm">
-            <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+          <div className="text-ctp-overlay0 absolute inset-0 flex items-center justify-center gap-2 text-sm">
+            <Spinner className="size-5" aria-hidden="true" />
             Loading editor…
           </div>
         ) : activeFile?.binary === true ? (
-          <div className="text-muted-foreground absolute inset-0 flex items-center justify-center p-4 text-sm">
+          <div className="text-ctp-overlay0 absolute inset-0 flex items-center justify-center p-4 text-sm">
             Binary file — read only.
           </div>
         ) : workspace.openPaths.length === 0 ? (
-          <div className="text-muted-foreground absolute inset-0 flex items-center justify-center p-4 text-sm">
+          <div className="text-ctp-overlay0 absolute inset-0 flex items-center justify-center p-4 text-sm">
             No file open.
           </div>
         ) : null}

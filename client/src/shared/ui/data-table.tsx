@@ -1,5 +1,13 @@
 import { type ReactNode } from "react";
 import { cn } from "cn";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/ui/table";
 
 export type DataTableColumn<TRecord> = {
   readonly key: string;
@@ -30,39 +38,41 @@ export function DataTable<TRecord>({
   return (
     <div
       className={cn(
-        "border-border bg-card overflow-x-auto rounded-xl border shadow-sm",
+        "bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1",
         className,
       )}
     >
-      <table className="divide-border min-w-full divide-y text-left text-sm">
-        <thead className="bg-secondary/50 text-muted-foreground text-xs tracking-wide uppercase">
-          <tr>
+      <Table>
+        <TableHeader className="bg-muted/40">
+          <TableRow className="hover:bg-transparent">
             {columns.map((column) => (
-              <th
+              <TableHead
                 key={column.key}
-                scope="col"
-                className="px-4 py-3 font-medium"
+                className="text-muted-foreground px-4 text-xs tracking-wide uppercase"
               >
                 {column.header}
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody className="divide-border divide-y">
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {records.map((record) => (
-            <tr key={getRowKey(record)} className="align-top">
+            <TableRow key={getRowKey(record)} className="align-top">
               {columns.map((column) => (
-                <td
+                <TableCell
                   key={column.key}
-                  className={cn("px-4 py-3", column.className)}
+                  className={cn(
+                    "px-4 py-3 whitespace-normal",
+                    column.className,
+                  )}
                 >
                   {column.render(record)}
-                </td>
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

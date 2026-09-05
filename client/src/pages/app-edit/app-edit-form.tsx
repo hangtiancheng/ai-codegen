@@ -2,7 +2,7 @@ import { useForm } from "@tanstack/react-form";
 import { type ReactNode } from "react";
 import { getZodFieldError } from "@/shared/lib";
 import { type AppVo } from "@/shared/schemas";
-import { Button, TextArea, TextField } from "@/shared/ui";
+import { Button, LoadingButton, TextArea, TextField } from "@/shared/ui";
 import {
   appCoverInputSchema,
   appEditFormSchema,
@@ -101,9 +101,9 @@ export function AppEditForm({
       ) : null}
       <TextArea label="Initial Prompt" value={app.initPrompt} disabled />
       <div className="flex flex-wrap gap-3 pt-2">
-        <Button type="submit" disabled={submitting} isLoading={submitting}>
+        <LoadingButton type="submit" isLoading={submitting}>
           Save Changes
-        </Button>
+        </LoadingButton>
         <Button type="button" variant="outline" onClick={onReset}>
           Reset
         </Button>

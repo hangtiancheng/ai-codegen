@@ -4,7 +4,6 @@ import {
   Brain,
   Check,
   ChevronRight,
-  Loader2,
   Terminal,
   User,
   Wrench,
@@ -12,7 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "cn";
-import { MarkdownRenderer } from "@/shared/ui";
+import { MarkdownRenderer, Spinner } from "@/shared/ui";
 import type {
   AgentRuntimeStatus,
   AgentTranscriptEvent,
@@ -118,14 +117,14 @@ function ToolRow({
         )}
         <span className="ml-auto shrink-0">
           {running ? (
-            <Loader2
-              className="text-muted-foreground size-3 animate-spin"
+            <Spinner
+              className="text-muted-foreground size-3"
               aria-hidden="true"
             />
           ) : isError ? (
             <X className="text-destructive size-3" aria-hidden="true" />
           ) : (
-            <Check className="size-3 text-emerald-500" aria-hidden="true" />
+            <Check className="text-primary size-3" aria-hidden="true" />
           )}
         </span>
       </button>
@@ -361,9 +360,7 @@ export function AgentTranscriptView({
         </AvatarBubble>
       ) : null}
       {running && streamingText.length === 0 && thinkingText.length === 0 ? (
-        <SystemNote
-          icon={<Loader2 className="size-3 animate-spin" aria-hidden="true" />}
-        >
+        <SystemNote icon={<Spinner className="size-3" aria-hidden="true" />}>
           {runtimeStatus === "waiting"
             ? "Waiting for your response…"
             : "Working…"}

@@ -33,9 +33,7 @@ export function AppCard({
           </div>
         )}
         {featured ? (
-          <Badge variant="blue" className="absolute top-3 left-3">
-            Featured
-          </Badge>
+          <Badge className="absolute top-3 left-3">Featured</Badge>
         ) : null}
         <div className="bg-foreground/45 absolute inset-0 flex items-center justify-center gap-3 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
           <Button
@@ -46,7 +44,7 @@ export function AppCard({
             Details
           </Button>
           <Button size="sm" onClick={() => onViewChat?.(app)}>
-            <MessageSquare className="size-4" aria-hidden="true" />
+            <MessageSquare data-icon="inline-start" />
             View Chat
           </Button>
         </div>

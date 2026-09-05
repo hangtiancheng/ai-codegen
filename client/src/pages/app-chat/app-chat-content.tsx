@@ -2,7 +2,12 @@ import { type ReactNode } from "react";
 import { isApiExceptionWithStatus } from "@/shared/api";
 import { useAppById } from "@/shared/query";
 import { type AppId } from "@/shared/schemas";
-import { Button, EmptyState, ErrorState, LoadingState } from "@/shared/ui";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingButton,
+  LoadingState,
+} from "@/shared/ui";
 import { AppChatWorkspace } from "./app-chat-workspace";
 
 export function AppChatContent({
@@ -24,13 +29,13 @@ export function AppChatContent({
         title="Unable to load app"
         description="The chat workspace could not be loaded."
         action={
-          <Button
+          <LoadingButton
             variant="outline"
             isLoading={appQuery.isFetching}
             onClick={() => void appQuery.refetch()}
           >
             Retry
-          </Button>
+          </LoadingButton>
         }
       />
     );
@@ -41,13 +46,13 @@ export function AppChatContent({
         title="App data unavailable"
         description="The request succeeded without returning app details."
         action={
-          <Button
+          <LoadingButton
             variant="outline"
             isLoading={appQuery.isFetching}
             onClick={() => void appQuery.refetch()}
           >
             Retry
-          </Button>
+          </LoadingButton>
         }
       />
     );

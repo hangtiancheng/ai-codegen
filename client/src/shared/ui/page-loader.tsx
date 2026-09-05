@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { Spinner } from "@/shared/ui/spinner";
 
 export function PageLoader(): ReactNode {
   return (
@@ -6,13 +7,10 @@ export function PageLoader(): ReactNode {
       role="status"
       aria-live="polite"
       aria-label="Loading"
-      className="text-muted-foreground flex min-h-[40vh] w-full items-center justify-center text-sm"
+      className="text-muted-foreground flex min-h-[40vh] w-full flex-col items-center justify-center gap-2 text-sm"
     >
-      <span
-        className="bg-muted-foreground/60 inline-block size-2 animate-pulse rounded-full"
-        aria-hidden="true"
-      />
-      <span className="ml-2">Loading…</span>
+      <Spinner className="text-primary size-5" />
+      <span>Loading…</span>
     </div>
   );
 }

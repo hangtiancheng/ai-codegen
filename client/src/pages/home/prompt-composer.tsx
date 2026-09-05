@@ -1,6 +1,6 @@
 import { ArrowUp } from "lucide-react";
 import { type ReactNode } from "react";
-import { Button, TextArea } from "@/shared/ui";
+import { Button, LoadingButton, TextArea } from "@/shared/ui";
 import { quickPrompts } from "./quick-prompts";
 
 export type PromptComposerProps = {
@@ -28,16 +28,15 @@ export function PromptComposer({
           className="border-primary/15 bg-card resize-none rounded-2xl p-5 pr-16 text-base shadow-sm"
           aria-label="App description"
         />
-        <Button
+        <LoadingButton
           className="absolute right-3 bottom-3 rounded-full"
           size="sm"
-          disabled={submitting}
           isLoading={submitting}
           onClick={onSubmit}
         >
           <ArrowUp className="size-5" aria-hidden="true" />
           <span className="sr-only">Create app</span>
-        </Button>
+        </LoadingButton>
       </div>
       <div className="mt-4 flex flex-wrap justify-center gap-3">
         {quickPrompts.map((item) => (

@@ -6,9 +6,9 @@ import { downloadAppCode, isApiExceptionWithStatus } from "@/shared/api";
 import { useAppById, useUpdateApp, useUpdateAppByAdmin } from "@/shared/query";
 import { type AppId } from "@/shared/schemas";
 import {
-  Button,
   EmptyState,
   ErrorState,
+  LoadingButton,
   LoadingState,
   PageContainer,
 } from "@/shared/ui";
@@ -42,13 +42,13 @@ export function AppEditContent({ appId }: AppEditContentProps): ReactNode {
         title="Unable to load app"
         description="The app details could not be loaded."
         action={
-          <Button
+          <LoadingButton
             variant="outline"
             isLoading={appQuery.isFetching}
             onClick={() => void appQuery.refetch()}
           >
             Retry
-          </Button>
+          </LoadingButton>
         }
       />
     );
@@ -59,13 +59,13 @@ export function AppEditContent({ appId }: AppEditContentProps): ReactNode {
         title="App data unavailable"
         description="The request succeeded without returning app details."
         action={
-          <Button
+          <LoadingButton
             variant="outline"
             isLoading={appQuery.isFetching}
             onClick={() => void appQuery.refetch()}
           >
             Retry
-          </Button>
+          </LoadingButton>
         }
       />
     );

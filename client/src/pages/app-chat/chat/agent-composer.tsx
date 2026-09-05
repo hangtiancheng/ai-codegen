@@ -134,14 +134,15 @@ export function AgentComposer({
           <span className="truncate">
             Element attached: {selectedElementLabel}
           </span>
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon-xs"
             onClick={onClearSelectedElement}
-            className="hover:text-primary/70 ml-auto"
+            className="hover:text-primary/70 ml-auto hover:bg-transparent"
             aria-label="Clear selected element"
           >
-            <X className="size-3.5" aria-hidden="true" />
-          </button>
+            <X />
+          </Button>
         </div>
       ) : null}
 
@@ -165,7 +166,7 @@ export function AgentComposer({
           className="min-h-16 resize-none"
         />
         {running ? (
-          <Button variant="danger" className="self-end" onClick={onAbort}>
+          <Button variant="destructive" className="self-end" onClick={onAbort}>
             <Square className="size-4" aria-hidden="true" />
             Stop
           </Button>

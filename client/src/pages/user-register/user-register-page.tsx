@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { getZodFieldError } from "@/shared/lib";
 import { useRegister } from "@/shared/query";
 import { userRegisterRequestSchema } from "@/shared/schemas";
-import { AuthCard, Button, TextField } from "@/shared/ui";
+import { AuthCard, LoadingButton, TextField } from "@/shared/ui";
 import { getConfirmPasswordError } from "./confirm-password-error";
 
 export function UserRegisterPage(): ReactNode {
@@ -124,14 +124,14 @@ export function UserRegisterPage(): ReactNode {
             selector={(state) => [state.canSubmit, state.isSubmitting]}
           >
             {([canSubmit, isSubmitting]) => (
-              <Button
+              <LoadingButton
                 type="submit"
                 className="mt-1 w-full"
-                disabled={!canSubmit || registerMutation.isPending}
+                disabled={!canSubmit}
                 isLoading={isSubmitting || registerMutation.isPending}
               >
                 Register
-              </Button>
+              </LoadingButton>
             )}
           </form.Subscribe>
         </form>

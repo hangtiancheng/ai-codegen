@@ -3,6 +3,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { cn } from "cn";
 import type { AppId, VisualEditorElementInfo } from "@/shared/schemas";
+import { Button } from "@/shared/ui";
 import { useWorkspace } from "./workspace";
 import { AgentComposer } from "./chat/agent-composer";
 import { AgentStatusBar } from "./chat/agent-status-bar";
@@ -167,15 +168,16 @@ export function ChatPane({
             >
               <AlertTriangle className="size-3.5 shrink-0" aria-hidden="true" />
               <span className="min-w-0 flex-1 truncate">{error.message}</span>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="icon-xs"
                 onClick={() =>
                   dispatch({ type: "dismiss_error", id: error.id })
                 }
                 aria-label="Dismiss error"
               >
-                <X className="size-3.5" aria-hidden="true" />
-              </button>
+                <X />
+              </Button>
             </div>
           ))}
         </div>

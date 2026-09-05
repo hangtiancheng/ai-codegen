@@ -56,7 +56,7 @@ export function PreviewPanel({
           </Button>
           {canEdit && previewUrl !== undefined ? (
             <Button
-              variant={editMode ? "primary" : "secondary"}
+              variant={editMode ? "default" : "secondary"}
               size="sm"
               onClick={onToggleEditMode}
             >
@@ -77,7 +77,7 @@ export function PreviewPanel({
             title="Generated app preview"
             src={previewUrl}
             onLoad={onIframeLoad}
-            className="h-full min-h-96 w-full bg-white"
+            className="bg-card h-full min-h-96 w-full"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
           />
         ) : (

@@ -1,6 +1,14 @@
 import { type ReactNode } from "react";
-import { AlertTriangle } from "lucide-react";
+import { TriangleAlert } from "lucide-react";
 import { cn } from "cn";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/shared/ui/empty";
 
 export type ErrorStateProps = {
   readonly title?: string;
@@ -16,23 +24,28 @@ export function ErrorState({
   className,
 }: ErrorStateProps): ReactNode {
   return (
-    <section
+    <Empty
       role="alert"
       className={cn(
-        "border-destructive/25 bg-destructive/5 flex flex-col items-center justify-center rounded-xl border px-6 py-10 text-center",
+        "border-destructive/25 bg-destructive/[0.04] border",
         className,
       )}
     >
-      <div className="border-destructive/15 bg-background text-destructive mb-4 rounded-full border p-3 shadow-sm">
-        <AlertTriangle className="size-5" aria-hidden="true" />
-      </div>
-      <h2 className="text-foreground text-base font-semibold">{title}</h2>
-      {description ? (
-        <p className="text-muted-foreground mt-2 max-w-md text-sm">
-          {description}
-        </p>
-      ) : null}
-      {action ? <div className="mt-5">{action}</div> : null}
-    </section>
+      <EmptyHeader>
+        <EmptyMedia
+          variant="icon"
+          className="border-destructive/15 bg-background text-destructive size-10 rounded-full border [&_svg]:size-5"
+        >
+          <TriangleAlert />
+        </EmptyMedia>
+        <EmptyTitle className="text-foreground text-base font-semibold">
+          {title}
+        </EmptyTitle>
+        {description ? (
+          <EmptyDescription>{description}</EmptyDescription>
+        ) : null}
+      </EmptyHeader>
+      {action ? <EmptyContent>{action}</EmptyContent> : null}
+    </Empty>
   );
 }

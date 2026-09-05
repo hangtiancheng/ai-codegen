@@ -60,4 +60,13 @@ export default defineConfig([
       "react-refresh/only-export-components": "off",
     },
   },
+  {
+    // shadcn/ui primitives are a component library: they intentionally export
+    // variant helpers (buttonVariants, badgeVariants, …) alongside components,
+    // so the fast-refresh "components only" rule does not apply here.
+    files: ["src/shared/ui/**/*.{ts,tsx}"],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
 ]);

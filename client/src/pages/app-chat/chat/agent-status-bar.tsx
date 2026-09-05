@@ -1,6 +1,7 @@
 import { SlidersHorizontal } from "lucide-react";
 import { type ReactNode } from "react";
 import { cn } from "cn";
+import { Badge, Button } from "@/shared/ui";
 import type {
   AgentConnectionState,
   AgentRuntimeStatus,
@@ -67,19 +68,19 @@ export function AgentStatusBar({
         <span className="ml-auto" />
       )}
       {readOnly ? (
-        <span className="bg-muted rounded px-1.5 py-0.5 text-[10px] font-medium">
+        <Badge variant="secondary" className="text-[10px]">
           read-only
-        </span>
+        </Badge>
       ) : null}
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="xs"
         onClick={onOpenCapabilities}
-        className="hover:text-foreground flex items-center gap-1"
         aria-label="Open capabilities"
       >
-        <SlidersHorizontal className="size-3.5" aria-hidden="true" />
+        <SlidersHorizontal data-icon="inline-start" />
         Capabilities
-      </button>
+      </Button>
     </div>
   );
 }

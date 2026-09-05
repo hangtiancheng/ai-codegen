@@ -1,6 +1,14 @@
 import { type ReactNode } from "react";
-import { Sparkles } from "lucide-react";
+import { Sprout } from "lucide-react";
 import { cn } from "cn";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/shared/ui/empty";
 
 export type EmptyStateProps = {
   readonly title: string;
@@ -16,22 +24,24 @@ export function EmptyState({
   className,
 }: EmptyStateProps): ReactNode {
   return (
-    <section
-      className={cn(
-        "border-primary/25 bg-primary/5 flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 text-center",
-        className,
-      )}
+    <Empty
+      className={cn("border-primary/25 bg-primary/[0.03] border", className)}
     >
-      <div className="border-primary/15 bg-background text-primary mb-4 rounded-full border p-3 shadow-sm">
-        <Sparkles className="size-5" aria-hidden="true" />
-      </div>
-      <h2 className="text-foreground text-base font-semibold">{title}</h2>
-      {description ? (
-        <p className="text-muted-foreground mt-2 max-w-md text-sm">
-          {description}
-        </p>
-      ) : null}
-      {action ? <div className="mt-5">{action}</div> : null}
-    </section>
+      <EmptyHeader>
+        <EmptyMedia
+          variant="icon"
+          className="border-primary/15 bg-background text-primary size-10 rounded-full border [&_svg]:size-5"
+        >
+          <Sprout />
+        </EmptyMedia>
+        <EmptyTitle className="text-foreground text-base font-semibold">
+          {title}
+        </EmptyTitle>
+        {description ? (
+          <EmptyDescription>{description}</EmptyDescription>
+        ) : null}
+      </EmptyHeader>
+      {action ? <EmptyContent>{action}</EmptyContent> : null}
+    </Empty>
   );
 }

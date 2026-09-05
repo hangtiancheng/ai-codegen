@@ -7,7 +7,7 @@ import { useUserStore } from "@/shared/auth";
 import { getZodFieldError } from "@/shared/lib";
 import { useLogin } from "@/shared/query";
 import { userLoginRequestSchema } from "@/shared/schemas";
-import { AuthCard, Button, TextField } from "@/shared/ui";
+import { AuthCard, LoadingButton, TextField } from "@/shared/ui";
 
 const redirectTargetSchema = z
   .string()
@@ -118,14 +118,14 @@ export function UserLoginPage(): ReactNode {
             selector={(state) => [state.canSubmit, state.isSubmitting]}
           >
             {([canSubmit, isSubmitting]) => (
-              <Button
+              <LoadingButton
                 type="submit"
                 className="mt-1 w-full"
-                disabled={!canSubmit || loginMutation.isPending}
+                disabled={!canSubmit}
                 isLoading={isSubmitting || loginMutation.isPending}
               >
                 Login
-              </Button>
+              </LoadingButton>
             )}
           </form.Subscribe>
         </form>

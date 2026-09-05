@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { type AppVo } from "@/shared/schemas";
-import { AppCard, EmptyState, LoadingState } from "@/shared/ui";
+import { AppCard, Badge, EmptyState, LoadingState } from "@/shared/ui";
 
 export type AppSectionProps = {
   readonly title: string;
@@ -22,10 +22,19 @@ export function AppSection({
   onViewChat,
 }: AppSectionProps): ReactNode {
   return (
-    <section className="grid gap-5">
-      <header>
-        <h2 className="text-foreground text-2xl font-semibold">{title}</h2>
-        <p className="text-muted-foreground mt-1 text-sm">{description}</p>
+    <section className="grid gap-6">
+      <header className="border-border flex items-end justify-between gap-4 border-b pb-4">
+        <div>
+          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
+            {title}
+          </h2>
+          <p className="text-muted-foreground mt-1 text-sm">{description}</p>
+        </div>
+        {!loading && apps.length > 0 ? (
+          <Badge variant="secondary" className="shrink-0">
+            {apps.length} {apps.length === 1 ? "app" : "apps"}
+          </Badge>
+        ) : null}
       </header>
       {loading ? (
         <LoadingState label={`Loading ${title.toLowerCase()}`} />

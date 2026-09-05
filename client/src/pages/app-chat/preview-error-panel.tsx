@@ -1,6 +1,6 @@
 import { AlertTriangle, WandSparkles, X } from "lucide-react";
 import type { ReactNode } from "react";
-import { Button } from "@/shared/ui";
+import { Button, LoadingButton } from "@/shared/ui";
 import type { PreviewRuntimeError } from "./build-error-context";
 
 export type PreviewErrorPanelProps = Readonly<{
@@ -40,16 +40,15 @@ export function PreviewErrorPanel({
         </Button>
       </div>
       {canFix ? (
-        <Button
+        <LoadingButton
           className="mt-3"
           size="sm"
-          disabled={fixing}
           isLoading={fixing}
           onClick={onFix}
         >
           <WandSparkles className="size-4" aria-hidden="true" />
           Fix with AI
-        </Button>
+        </LoadingButton>
       ) : null}
     </aside>
   );

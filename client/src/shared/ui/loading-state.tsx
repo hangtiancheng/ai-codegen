@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import { cn } from "cn";
+import { Spinner } from "@/shared/ui/spinner";
 
 export type LoadingStateProps = {
   readonly label?: string;
@@ -15,14 +16,11 @@ export function LoadingState({
       role="status"
       aria-live="polite"
       className={cn(
-        "border-border bg-card text-muted-foreground flex min-h-32 flex-col items-center justify-center gap-3 rounded-xl border text-sm",
+        "text-muted-foreground flex min-h-32 flex-col items-center justify-center gap-3 rounded-xl border border-dashed text-sm",
         className,
       )}
     >
-      <span
-        className="border-primary/20 border-t-primary size-6 animate-spin rounded-full border-2"
-        aria-hidden="true"
-      />
+      <Spinner className="text-primary size-6" />
       <span>{label}</span>
     </div>
   );

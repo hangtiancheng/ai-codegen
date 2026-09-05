@@ -1,8 +1,10 @@
 import { type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Sprout } from "lucide-react";
 import { useUserStore } from "@/shared/auth";
 import { useLogout } from "@/shared/query";
+import { Button, UserInfo } from "@/shared/ui";
 import { NavLink } from "./nav-links";
 import { useVisibleNavLinks } from "./use-visible-nav-links";
 
@@ -28,13 +30,14 @@ export function GlobalHeader(): ReactNode {
   };
 
   return (
-    <header className="border-border bg-background border-b px-4 py-3 md:px-6">
+    <header className="border-border bg-background/80 sticky top-0 z-30 border-b px-4 py-2.5 backdrop-blur-sm md:px-6">
       <div className="flex items-center justify-between gap-4">
         <button
           type="button"
           onClick={() => navigate("/")}
-          className="text-foreground flex items-center gap-3 text-xl font-medium"
+          className="text-foreground hover:text-primary flex items-center gap-2 text-lg font-semibold transition-colors"
         >
+          <Sprout className="text-primary size-5" aria-hidden="true" />
           Swifty Codegen
         </button>
         <nav className="hidden items-center gap-1 md:flex">
@@ -50,26 +53,22 @@ export function GlobalHeader(): ReactNode {
         <div className="flex items-center gap-3">
           {user ? (
             <>
-              <span className="text-foreground/80 hidden text-sm sm:inline">
-                {user.username ?? user.userAccount}
+              <span className="hidden sm:inline">
+                <UserInfo user={user} showName size="sm" />
               </span>
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={handleLogout}
                 disabled={logoutMutation.isPending}
-                className="bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-60"
               >
                 {logoutMutation.isPending ? "Logging out..." : "Logout"}
-              </button>
+              </Button>
             </>
           ) : (
-            <button
-              type="button"
-              onClick={() => navigate("/user/login")}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-3 py-1.5 text-sm font-medium"
-            >
+            <Button size="sm" onClick={() => navigate("/user/login")}>
               Login
-            </button>
+            </Button>
           )}
         </div>
       </div>

@@ -1,5 +1,16 @@
 import { type ReactNode } from "react";
-import { Button } from "./button";
+import { CircleAlertIcon } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/shared/ui/alert-dialog";
 
 export type ConfirmationDialogProps = {
   readonly open: boolean;
@@ -20,31 +31,30 @@ export function ConfirmationDialog({
   onConfirm,
   onCancel,
 }: ConfirmationDialogProps): ReactNode {
-  if (!open) {
-    return null;
-  }
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirmation-dialog-title"
-      className="bg-foreground/30 fixed inset-0 z-50 flex items-center justify-center px-4 backdrop-blur-sm"
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onCancel();
+      }}
     >
-      <section className="border-border bg-card w-full max-w-sm rounded-xl border p-5 shadow-xl">
-        <h2 id="confirmation-dialog-title" className="text-lg font-semibold">
-          {title}
-        </h2>
-        <p className="text-muted-foreground mt-2 text-sm">{description}</p>
-        <div className="mt-6 flex justify-end gap-2">
-          <Button variant="outline" onClick={onCancel}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogMedia className="bg-destructive/10 text-destructive">
+            <CircleAlertIcon />
+          </AlertDialogMedia>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onCancel}>
             {cancelLabel}
-          </Button>
-          <Button variant="danger" onClick={onConfirm}>
+          </AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={onConfirm}>
             {confirmLabel}
-          </Button>
-        </div>
-      </section>
-    </div>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

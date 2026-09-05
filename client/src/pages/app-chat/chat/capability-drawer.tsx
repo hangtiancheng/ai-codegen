@@ -1,15 +1,28 @@
-import { Loader2, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import { Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { cn } from "cn";
 import type { AppId } from "@/shared/schemas";
 import {
+  Badge,
   Button,
+  Checkbox,
+  Field,
+  FieldLabel,
+  Input,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  Spinner,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
 } from "@/shared/ui";
 import {
   clearAgentMemory,
@@ -31,23 +44,8 @@ import {
   updateAgentSettings,
 } from "./capability-api";
 
-type TabId = "mcp" | "skills" | "settings" | "sessions" | "memory";
-
-const TABS: ReadonlyArray<{ id: TabId; label: string }> = [
-  { id: "mcp", label: "MCP" },
-  { id: "skills", label: "Skills" },
-  { id: "settings", label: "Settings" },
-  { id: "sessions", label: "Sessions" },
-  { id: "memory", label: "Memory" },
-];
-
 const formatPermissionMode = (mode: string): string =>
   mode.replace(/_/g, " ").toLowerCase();
-
-const PERMISSION_MODE_ITEMS = PERMISSION_MODES.map((mode) => ({
-  value: mode,
-  label: formatPermissionMode(mode),
-}));
 
 export type CapabilityDrawerProps = {
   readonly appId: AppId;
@@ -66,72 +64,56 @@ export function CapabilityDrawer({
   onNewSession,
   onPermissionModeChange,
 }: CapabilityDrawerProps): ReactNode {
-  const [tab, setTab] = useState<TabId>("mcp");
-  if (!open) return null;
   return (
-    <div className="fixed inset-0 z-40 flex justify-end">
-      <button
-        type="button"
-        aria-label="Close"
-        className="bg-background/60 absolute inset-0"
-        onClick={onClose}
-      />
-      <aside className="border-border bg-card relative flex h-full w-full max-w-md flex-col border-l shadow-xl">
-        <header className="border-border flex items-center justify-between border-b px-4 py-3">
-          <h2 className="text-base font-semibold">Capabilities</h2>
-          <button type="button" onClick={onClose} aria-label="Close drawer">
-            <X className="size-4" aria-hidden="true" />
-          </button>
-        </header>
-        <div
-          role="tablist"
-          className="border-border flex gap-1 border-b px-2 py-2"
+    <Sheet
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-md">
+        <SheetHeader className="border-b px-4 py-3">
+          <SheetTitle className="text-base">Capabilities</SheetTitle>
+        </SheetHeader>
+        <Tabs
+          defaultValue="mcp"
+          className="min-h-0 flex-1 gap-0 overflow-hidden"
         >
-          {TABS.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === entry.id}
-              onClick={() => setTab(entry.id)}
-              className={cn(
-                "rounded-lg px-2.5 py-1 text-xs font-medium",
-                tab === entry.id
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent/50",
-              )}
-            >
-              {entry.label}
-            </button>
-          ))}
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          {tab === "mcp" ? (
-            <McpTab appId={appId} canManage={canManage} />
-          ) : null}
-          {tab === "skills" ? (
-            <SkillsTab appId={appId} canManage={canManage} />
-          ) : null}
-          {tab === "settings" ? (
-            <SettingsTab
-              appId={appId}
-              canManage={canManage}
-              onPermissionModeChange={onPermissionModeChange}
-            />
-          ) : null}
-          {tab === "sessions" ? (
-            <SessionsTab
-              appId={appId}
-              canManage={canManage}
-              onNewSession={onNewSession}
-            />
-          ) : null}
-          {tab === "memory" ? (
-            <MemoryTab appId={appId} canManage={canManage} />
-          ) : null}
-        </div>
-      </aside>
-    </div>
+          <TabsList className="mx-4 mt-3 mb-1 w-auto justify-start">
+            <TabsTrigger value="mcp">MCP</TabsTrigger>
+            <TabsTrigger value="skills">Skills</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="sessions">Sessions</TabsTrigger>
+            <TabsTrigger value="memory">Memory</TabsTrigger>
+          </TabsList>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            <TabsContent value="mcp">
+              <McpTab appId={appId} canManage={canManage} />
+            </TabsContent>
+            <TabsContent value="skills">
+              <SkillsTab appId={appId} canManage={canManage} />
+            </TabsContent>
+            <TabsContent value="settings">
+              <SettingsTab
+                appId={appId}
+                canManage={canManage}
+                onPermissionModeChange={onPermissionModeChange}
+              />
+            </TabsContent>
+            <TabsContent value="sessions">
+              <SessionsTab
+                appId={appId}
+                canManage={canManage}
+                onNewSession={onNewSession}
+              />
+            </TabsContent>
+            <TabsContent value="memory">
+              <MemoryTab appId={appId} canManage={canManage} />
+            </TabsContent>
+          </div>
+        </Tabs>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -166,7 +148,7 @@ function StatusLine({
   if (loading) {
     return (
       <p className="text-muted-foreground flex items-center gap-2 text-sm">
-        <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Loading…
+        <Spinner aria-hidden="true" /> Loading…
       </p>
     );
   }
@@ -216,24 +198,25 @@ function McpTab({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">MCP servers</h3>
         <div className="flex gap-1">
           <Button
-            size="sm"
+            size="icon-sm"
             variant="ghost"
             onClick={reload}
             aria-label="Refresh"
+            title="Refresh"
           >
-            <RefreshCw className="size-3.5" aria-hidden="true" />
+            <RefreshCw />
           </Button>
           <Button
             size="sm"
             variant="secondary"
             onClick={() => setAdding((value) => !value)}
           >
-            <Plus className="size-3.5" aria-hidden="true" />
+            <Plus data-icon="inline-start" />
             Add
           </Button>
         </div>
@@ -248,7 +231,7 @@ function McpTab({
           }}
         />
       ) : null}
-      <ul className="space-y-2">
+      <ul className="flex flex-col gap-2">
         {(data ?? []).map((server) => (
           <li
             key={server.id}
@@ -259,18 +242,18 @@ function McpTab({
               <span className="text-muted-foreground/70 text-[10px] uppercase">
                 {server.transport}
               </span>
-              <span
-                className={cn(
-                  "ml-auto rounded px-1.5 py-0.5 text-[10px]",
+              <Badge
+                variant={
                   server.status === "CONNECTED"
-                    ? "bg-emerald-500/15 text-emerald-600"
+                    ? "success"
                     : server.status === "ERROR"
-                      ? "bg-destructive/15 text-destructive"
-                      : "bg-muted text-muted-foreground",
-                )}
+                      ? "destructive"
+                      : "secondary"
+                }
+                className="ml-auto text-[10px]"
               >
                 {server.status.toLowerCase()}
-              </span>
+              </Badge>
             </div>
             <p className="text-muted-foreground mt-1 truncate font-mono text-xs">
               {server.command ?? server.url ?? ""}
@@ -289,13 +272,14 @@ function McpTab({
                 Test
               </Button>
               <Button
-                size="sm"
+                size="icon-sm"
                 variant="ghost"
+                aria-label={`Delete ${server.name}`}
                 onClick={() => {
                   void deleteMcpServer(appId, server.id).then(reload);
                 }}
               >
-                <Trash2 className="size-3.5" aria-hidden="true" />
+                <Trash2 />
               </Button>
             </div>
           </li>
@@ -361,63 +345,66 @@ function McpForm({
   };
 
   return (
-    <div className="border-border bg-muted/20 space-y-2 rounded-lg border p-3">
-      <input
-        className="border-border bg-background w-full rounded-md border px-2 py-1 text-sm"
+    <div className="border-border bg-muted/20 flex flex-col gap-2 rounded-lg border p-3">
+      <Input
         placeholder="Name (letters, digits, . _ -)"
         value={name}
         onChange={(event) => setName(event.target.value)}
       />
-      <select
-        className="border-border bg-background w-full rounded-md border px-2 py-1 text-sm"
+      <Select
+        items={mcpTransports.map((item) => ({ value: item, label: item }))}
         value={transport}
-        onChange={(event) =>
-          setTransport(
-            mcpTransports.find((value) => value === event.target.value) ??
-              "stdio",
-          )
+        onValueChange={(value) =>
+          setTransport(mcpTransports.find((item) => item === value) ?? "stdio")
         }
       >
-        {mcpTransports.map((value) => (
-          <option key={value} value={value}>
-            {value}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger className="w-full" aria-label="Transport">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {mcpTransports.map((value) => (
+            <SelectItem key={value} value={value}>
+              {value}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       {transport === "stdio" ? (
-        <input
-          className="border-border bg-background w-full rounded-md border px-2 py-1 font-mono text-sm"
+        <Input
+          className="font-mono"
           placeholder="Command, e.g. npx -y @modelcontextprotocol/server-filesystem ."
           value={command}
           onChange={(event) => setCommand(event.target.value)}
         />
       ) : (
-        <input
-          className="border-border bg-background w-full rounded-md border px-2 py-1 font-mono text-sm"
+        <Input
+          className="font-mono"
           placeholder="https://server.example.com/sse"
           value={url}
           onChange={(event) => setUrl(event.target.value)}
         />
       )}
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground text-xs">
             {transport === "stdio" ? "Env" : "Headers"} (secret)
           </span>
-          <button
+          <Button
             type="button"
-            className="text-primary text-xs"
+            variant="link"
+            size="xs"
+            className="text-primary"
             onClick={() =>
               setSecrets((rows) => [...rows, { key: "", value: "" }])
             }
           >
-            + add
-          </button>
+            Add entry
+          </Button>
         </div>
         {secrets.map((row, index) => (
           <div key={index} className="flex gap-1">
-            <input
-              className="border-border bg-background w-1/3 rounded-md border px-2 py-1 text-xs"
+            <Input
+              className="w-1/3 text-xs"
               placeholder="KEY"
               value={row.key}
               onChange={(event) =>
@@ -428,8 +415,8 @@ function McpForm({
                 )
               }
             />
-            <input
-              className="border-border bg-background flex-1 rounded-md border px-2 py-1 text-xs"
+            <Input
+              className="flex-1 text-xs"
               placeholder="value"
               type="password"
               value={row.value}
@@ -456,9 +443,7 @@ function McpForm({
           disabled={saving || name.trim().length === 0}
           onClick={submit}
         >
-          {saving ? (
-            <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-          ) : null}
+          {saving ? <Spinner data-icon="inline-start" /> : null}
           Create
         </Button>
       </div>
@@ -477,7 +462,7 @@ function SkillsTab({
     listAgentSkills(appId),
   );
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">
           Skills ({(data ?? []).length})
@@ -490,13 +475,13 @@ function SkillsTab({
               void reloadAgentSkills(appId).then(setData);
             }}
           >
-            <RefreshCw className="size-3.5" aria-hidden="true" />
+            <RefreshCw data-icon="inline-start" />
             Reload
           </Button>
         ) : null}
       </div>
       <StatusLine loading={loading} error={error} />
-      <ul className="space-y-1.5">
+      <ul className="flex flex-col gap-1.5">
         {(data ?? []).map((skill) => (
           <li
             key={skill.name}
@@ -551,17 +536,20 @@ function SettingsTab({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <h3 className="text-sm font-semibold">Settings</h3>
       <StatusLine loading={loading} error={error} />
       {data !== undefined ? (
-        <div className="space-y-3">
-          <div className="block text-sm">
-            <span className="text-muted-foreground text-xs">
+        <div className="flex flex-col gap-3">
+          <Field>
+            <FieldLabel className="text-muted-foreground text-xs">
               Permission mode
-            </span>
+            </FieldLabel>
             <Select
-              items={PERMISSION_MODE_ITEMS}
+              items={PERMISSION_MODES.map((mode) => ({
+                value: mode,
+                label: formatPermissionMode(mode),
+              }))}
               value={data.permissionMode}
               disabled={!canManage || saving}
               onValueChange={(value) =>
@@ -572,11 +560,7 @@ function SettingsTab({
                 })
               }
             >
-              <SelectTrigger
-                size="sm"
-                className="mt-1 w-full"
-                aria-label="Permission mode"
-              >
+              <SelectTrigger size="sm" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -587,18 +571,21 @@ function SettingsTab({
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </Field>
           {(["sandboxEnabled", "memoryEnabled", "hooksEnabled"] as const).map(
             (key) => (
-              <label key={key} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
+              <Field key={key} orientation="horizontal">
+                <Checkbox
                   checked={data[key]}
                   disabled={!canManage || saving}
-                  onChange={(event) => patch({ [key]: event.target.checked })}
+                  onCheckedChange={(checked) =>
+                    patch({ [key]: checked === true })
+                  }
                 />
-                {key.replace(/Enabled$/, "")}
-              </label>
+                <FieldLabel className="text-sm font-normal">
+                  {key.replace(/Enabled$/, "")}
+                </FieldLabel>
+              </Field>
             ),
           )}
         </div>
@@ -636,18 +623,18 @@ function SessionsTab({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Sessions</h3>
         {canManage ? (
           <Button size="sm" variant="secondary" onClick={onNewSession}>
-            <Plus className="size-3.5" aria-hidden="true" />
+            <Plus data-icon="inline-start" />
             New
           </Button>
         ) : null}
       </div>
       <StatusLine loading={loading} error={error} />
-      <ul className="space-y-1.5">
+      <ul className="flex flex-col gap-1.5">
         {(data ?? []).map((session) => (
           <li
             key={session.id}
@@ -696,7 +683,7 @@ function MemoryTab({
     listAgentMemory(appId),
   );
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">
           Memory ({(data ?? []).length})
@@ -709,13 +696,13 @@ function MemoryTab({
               void clearAgentMemory(appId).then(reload);
             }}
           >
-            <Trash2 className="size-3.5" aria-hidden="true" />
+            <Trash2 data-icon="inline-start" />
             Clear
           </Button>
         ) : null}
       </div>
       <StatusLine loading={loading} error={error} />
-      <ul className="space-y-1.5">
+      <ul className="flex flex-col gap-1.5">
         {(data ?? []).map((file) => (
           <li
             key={file.path}

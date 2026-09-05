@@ -32,7 +32,7 @@ function chatColumns(
       key: "type",
       header: "Type",
       render: (message) => (
-        <Badge variant={message.messageType === "ai" ? "blue" : "neutral"}>
+        <Badge variant={message.messageType === "ai" ? "default" : "secondary"}>
           {message.messageType}
         </Badge>
       ),

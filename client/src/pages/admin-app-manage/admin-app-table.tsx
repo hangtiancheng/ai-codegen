@@ -1,5 +1,10 @@
 import { type ReactNode } from "react";
-import { Button, DataTable, type DataTableColumn } from "@/shared/ui";
+import {
+  Button,
+  DataTable,
+  type DataTableColumn,
+  LoadingButton,
+} from "@/shared/ui";
 import { type AppId, type AppVo } from "@/shared/schemas";
 import { formatTimestamp } from "../admin-shared/format-admin-value";
 
@@ -82,22 +87,22 @@ function appColumns(
           <Button size="sm" variant="outline" onClick={() => onEdit(app)}>
             Edit
           </Button>
-          <Button
+          <LoadingButton
             size="sm"
             variant="secondary"
             isLoading={busyAppId === app.id}
             onClick={() => onToggleAwesome(app)}
           >
             {app.priority === 99 ? "Unfeature" : "Feature"}
-          </Button>
-          <Button
+          </LoadingButton>
+          <LoadingButton
             size="sm"
-            variant="danger"
+            variant="destructive"
             isLoading={busyAppId === app.id}
             onClick={() => onDelete(app)}
           >
             Delete
-          </Button>
+          </LoadingButton>
         </div>
       ),
     },

@@ -1,4 +1,5 @@
 import type * as Monaco from "monaco-editor";
+import { registerCatppuccinMonacoTheme } from "./catppuccin-theme";
 import { configureMonacoWorkers } from "./monaco-workers";
 
 /**
@@ -20,6 +21,7 @@ async function importMonaco(): Promise<MonacoModule> {
   try {
     configureMonacoWorkers();
     const monaco = await import("monaco-editor");
+    registerCatppuccinMonacoTheme(monaco);
     configureLanguageDefaults(monaco);
     return monaco;
   } catch (error) {

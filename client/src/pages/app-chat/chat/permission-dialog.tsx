@@ -1,6 +1,15 @@
 import { ShieldQuestion } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { Button } from "@/shared/ui";
+import { cn } from "cn";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui";
 import type {
   AgentPermissionRequest,
   JsonValue,
@@ -27,55 +36,64 @@ export function PermissionDialog({
   request,
   onDecision,
 }: PermissionDialogProps): ReactNode {
-  if (request === undefined) return null;
-  const args = formatArgs(request.args);
+  const args = request === undefined ? "" : formatArgs(request.args);
   return (
-    <div className="bg-background/70 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="border-border bg-card w-full max-w-lg rounded-2xl border p-5 shadow-xl">
-        <div className="flex items-center gap-2">
-          <ShieldQuestion className="text-primary size-5" aria-hidden="true" />
-          <h2 className="text-base font-semibold">Permission required</h2>
-        </div>
-        <p className="text-muted-foreground mt-2 text-sm">
-          The agent wants to run{" "}
-          <span className="text-foreground font-mono font-medium">
-            {request.toolName}
-          </span>
-          {request.description !== undefined && request.description.length > 0
-            ? `: ${request.description}`
-            : "."}
-        </p>
-        {request.reason !== undefined && request.reason.length > 0 ? (
-          <p className="text-muted-foreground mt-1 text-xs italic">
-            {request.reason}
-          </p>
-        ) : null}
-        {args !== "{}" && args.length > 0 ? (
-          <pre className="border-border bg-muted/40 text-muted-foreground mt-3 max-h-52 overflow-auto rounded-lg border p-2.5 font-mono text-xs whitespace-pre-wrap">
-            {args}
-          </pre>
-        ) : null}
-        <div className="mt-5 flex flex-wrap justify-end gap-2">
-          <Button
-            variant="ghost"
-            onClick={() => onDecision(request.interactionId, "deny")}
-          >
-            Deny
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => onDecision(request.interactionId, "allow")}
-          >
-            Allow once
-          </Button>
-          <Button
-            onClick={() => onDecision(request.interactionId, "allowAlways")}
-          >
-            Always allow
-          </Button>
-        </div>
-      </div>
-    </div>
+    <Dialog open={request !== undefined}>
+      <DialogContent showCloseButton={false} className="sm:max-w-lg">
+        {request === undefined ? null : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ShieldQuestion
+                  className="text-primary size-5"
+                  aria-hidden="true"
+                />
+                Permission required
+              </DialogTitle>
+              <DialogDescription>
+                The agent wants to run{" "}
+                <span className="text-foreground font-mono font-medium">
+                  {request.toolName}
+                </span>
+                {request.description !== undefined &&
+                request.description.length > 0
+                  ? `: ${request.description}`
+                  : "."}
+              </DialogDescription>
+            </DialogHeader>
+            {request.reason !== undefined && request.reason.length > 0 ? (
+              <p className="text-muted-foreground text-xs italic">
+                {request.reason}
+              </p>
+            ) : null}
+            {args !== "{}" && args.length > 0 ? (
+              <pre className="border-border bg-muted/40 text-muted-foreground max-h-52 overflow-auto rounded-lg border p-2.5 font-mono text-xs whitespace-pre-wrap">
+                {args}
+              </pre>
+            ) : null}
+            <DialogFooter className="flex-wrap justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => onDecision(request.interactionId, "deny")}
+              >
+                Deny
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => onDecision(request.interactionId, "allow")}
+              >
+                Allow once
+              </Button>
+              <Button
+                onClick={() => onDecision(request.interactionId, "allowAlways")}
+              >
+                Always allow
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -126,61 +144,66 @@ export function AgentQuestionDialog({
   };
 
   return (
-    <div className="bg-background/70 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="border-border bg-card max-h-[80vh] w-full max-w-lg overflow-auto rounded-2xl border p-5 shadow-xl">
-        <h2 className="text-base font-semibold">The agent has a question</h2>
-        <div className="mt-4 space-y-5">
-          {request.questions.map((question, questionIndex) => {
-            const selected = answers[question.question] ?? [];
-            return (
-              <fieldset key={questionIndex} className="space-y-2">
-                {question.header.length > 0 ? (
-                  <legend className="text-muted-foreground text-xs font-medium uppercase">
-                    {question.header}
-                  </legend>
-                ) : null}
-                <p className="text-sm font-medium">{question.question}</p>
-                <div className="space-y-1.5">
-                  {question.options.map((option, optionIndex) => {
-                    const active = selected.includes(option.label);
-                    return (
-                      <button
-                        key={optionIndex}
-                        type="button"
-                        onClick={() =>
-                          toggle(
-                            question.question,
-                            option.label,
-                            question.multiSelect,
-                          )
-                        }
-                        className={`flex w-full flex-col gap-0.5 rounded-lg border px-3 py-2 text-left text-sm ${
-                          active
-                            ? "border-primary bg-primary/10"
-                            : "border-border hover:bg-accent/40"
-                        }`}
-                      >
-                        <span className="font-medium">{option.label}</span>
-                        {option.description !== undefined &&
-                        option.description.length > 0 ? (
-                          <span className="text-muted-foreground text-xs">
-                            {option.description}
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            );
-          })}
+    <Dialog open>
+      <DialogContent showCloseButton={false} className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>The agent has a question</DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[60vh] overflow-y-auto">
+          <div className="flex flex-col gap-5">
+            {request.questions.map((question, questionIndex) => {
+              const selected = answers[question.question] ?? [];
+              return (
+                <fieldset key={questionIndex} className="flex flex-col gap-2">
+                  {question.header.length > 0 ? (
+                    <legend className="text-muted-foreground text-xs font-medium uppercase">
+                      {question.header}
+                    </legend>
+                  ) : null}
+                  <p className="text-sm font-medium">{question.question}</p>
+                  <div className="flex flex-col gap-1.5">
+                    {question.options.map((option, optionIndex) => {
+                      const active = selected.includes(option.label);
+                      return (
+                        <button
+                          key={optionIndex}
+                          type="button"
+                          onClick={() =>
+                            toggle(
+                              question.question,
+                              option.label,
+                              question.multiSelect,
+                            )
+                          }
+                          className={cn(
+                            "flex w-full flex-col gap-0.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                            active
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:bg-accent/40",
+                          )}
+                        >
+                          <span className="font-medium">{option.label}</span>
+                          {option.description !== undefined &&
+                          option.description.length > 0 ? (
+                            <span className="text-muted-foreground text-xs">
+                              {option.description}
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              );
+            })}
+          </div>
         </div>
-        <div className="mt-5 flex justify-end">
+        <DialogFooter>
           <Button disabled={!allAnswered} onClick={submit}>
             Submit
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

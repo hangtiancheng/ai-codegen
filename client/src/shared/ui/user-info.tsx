@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { type UserVo } from "@/shared/schemas";
-import { Avatar } from "./avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 
 type UserInfoSize = "sm" | "md" | "lg";
 
@@ -10,9 +10,9 @@ export type UserInfoProps = {
   readonly showName?: boolean;
 };
 
-const avatarSize: Record<UserInfoSize, "sm" | "md" | "lg"> = {
+const avatarSize: Record<UserInfoSize, "sm" | "default" | "lg"> = {
   sm: "sm",
-  md: "md",
+  md: "default",
   lg: "lg",
 };
 
@@ -22,10 +22,16 @@ export function UserInfo({
   showName = true,
 }: UserInfoProps): ReactNode {
   const name = user?.username ?? user?.userAccount ?? "Unknown User";
+  const fallback = name.trim().charAt(0).toUpperCase() || "U";
 
   return (
     <div className="inline-flex min-w-0 items-center gap-2">
-      <Avatar src={user?.userAvatar} name={name} size={avatarSize[size]} />
+      <Avatar size={avatarSize[size]}>
+        {user?.userAvatar ? <AvatarImage src={user.userAvatar} alt="" /> : null}
+        <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+          {fallback}
+        </AvatarFallback>
+      </Avatar>
       {showName ? (
         <span className="text-foreground truncate text-sm font-medium">
           {name}

@@ -10,10 +10,26 @@ import {
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { cn } from "cn";
-import { Button } from "@/shared/ui";
+import {
+  Button,
+  ConfirmationDialog,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+} from "@/shared/ui";
 import { parentPath } from "./workspace-paths";
 import { useWorkspace } from "./workspace-context";
 import type { WorkspaceNode } from "./workspace-tree";
+
+type NamePrompt = {
+  readonly kind: "file" | "folder" | "rename";
+  readonly targetPath: string;
+  readonly initialValue: string;
+};
 
 /**
  * Recursive project explorer with create/rename/delete/refresh actions and
@@ -24,6 +40,8 @@ export function FileExplorer(): ReactNode {
   const workspace = useWorkspace();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [selectedDir, setSelectedDir] = useState("");
+  const [prompt, setPrompt] = useState<NamePrompt>();
+  const [deleteTarget, setDeleteTarget] = useState<string>();
   const disabled = workspace.agentRunning || workspace.busy;
 
   const runMutation = (operation: Promise<void>): void => {
@@ -43,67 +61,62 @@ export function FileExplorer(): ReactNode {
     });
   };
 
-  const promptCreateFile = (): void => {
-    const name = globalThis.prompt("New file name (relative to selection)");
-    if (name === null || name.trim() === "") return;
-    runMutation(workspace.createFile(selectedDir, name.trim()));
-  };
-
-  const promptCreateFolder = (): void => {
-    const name = globalThis.prompt("New folder name (relative to selection)");
-    if (name === null || name.trim() === "") return;
-    runMutation(workspace.createDirectory(selectedDir, name.trim()));
-  };
-
-  const promptRename = (path: string): void => {
-    const next = globalThis.prompt("Rename to", path);
-    if (next === null || next.trim() === "" || next.trim() === path) return;
-    runMutation(workspace.renamePath(path, next.trim()));
-  };
-
-  const confirmDelete = (path: string): void => {
-    if (!globalThis.confirm(`Delete ${path}?`)) return;
-    runMutation(workspace.deletePath(path));
+  const submitPrompt = (name: string): void => {
+    if (prompt === undefined) return;
+    const trimmed = name.trim();
+    const current = prompt;
+    setPrompt(undefined);
+    if (trimmed === "") return;
+    if (current.kind === "file") {
+      runMutation(workspace.createFile(selectedDir, trimmed));
+    } else if (current.kind === "folder") {
+      runMutation(workspace.createDirectory(selectedDir, trimmed));
+    } else {
+      if (trimmed === current.targetPath) return;
+      runMutation(workspace.renamePath(current.targetPath, trimmed));
+    }
   };
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="border-border flex items-center justify-between gap-1 border-b px-2 py-1.5">
-        <span className="text-muted-foreground truncate text-xs font-medium">
+      <div className="border-ctp-crust flex items-center justify-between gap-1 border-b px-2 py-1.5">
+        <span className="text-ctp-overlay0 truncate text-xs font-medium">
           {selectedDir === "" ? "Explorer" : selectedDir}
         </span>
         <div className="flex items-center gap-0.5">
           <IconButton
             label="New file"
-            onClick={promptCreateFile}
+            onClick={() =>
+              setPrompt({ kind: "file", targetPath: "", initialValue: "" })
+            }
             disabled={disabled}
           >
-            <FilePlus className="size-4" aria-hidden="true" />
+            <FilePlus />
           </IconButton>
           <IconButton
             label="New folder"
-            onClick={promptCreateFolder}
+            onClick={() =>
+              setPrompt({ kind: "folder", targetPath: "", initialValue: "" })
+            }
             disabled={disabled}
           >
-            <FolderPlus className="size-4" aria-hidden="true" />
+            <FolderPlus />
           </IconButton>
           <IconButton
             label="Refresh"
             onClick={workspace.refreshTree}
             disabled={disabled}
           >
-            <RefreshCw className="size-4" aria-hidden="true" />
+            <RefreshCw />
           </IconButton>
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-auto py-1">
         {workspace.treeLoading && workspace.tree.length === 0 ? (
-          <p className="text-muted-foreground px-3 py-2 text-xs">Loading…</p>
+          <p className="text-ctp-overlay0 px-3 py-2 text-xs">Loading…</p>
         ) : null}
         {!workspace.treeLoading && workspace.tree.length === 0 ? (
-          <p className="text-muted-foreground px-3 py-2 text-xs">
-            No files yet.
-          </p>
+          <p className="text-ctp-overlay0 px-3 py-2 text-xs">No files yet.</p>
         ) : null}
         <ul>
           {workspace.tree.map((node) => (
@@ -114,12 +127,17 @@ export function FileExplorer(): ReactNode {
               collapsed={collapsed}
               selectedDir={selectedDir}
               activePath={workspace.activePath}
-              disabled={disabled}
               onToggle={toggle}
               onSelectDir={setSelectedDir}
               onOpen={workspace.openFile}
-              onRename={promptRename}
-              onDelete={confirmDelete}
+              onRename={(path) =>
+                setPrompt({
+                  kind: "rename",
+                  targetPath: path,
+                  initialValue: path,
+                })
+              }
+              onDelete={setDeleteTarget}
               getBadge={(path) => {
                 const file = workspace.getFileState(path);
                 if (file?.conflict !== undefined) return "conflict";
@@ -130,7 +148,94 @@ export function FileExplorer(): ReactNode {
           ))}
         </ul>
       </div>
+      <NamePromptDialog prompt={prompt} onSubmit={submitPrompt} />
+      <ConfirmationDialog
+        open={deleteTarget !== undefined}
+        title="Delete file"
+        description={
+          deleteTarget === undefined
+            ? ""
+            : `Delete ${deleteTarget}? This cannot be undone.`
+        }
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (deleteTarget !== undefined) {
+            runMutation(workspace.deletePath(deleteTarget));
+          }
+          setDeleteTarget(undefined);
+        }}
+        onCancel={() => setDeleteTarget(undefined)}
+      />
     </div>
+  );
+}
+
+function NamePromptDialog({
+  prompt,
+  onSubmit,
+}: {
+  readonly prompt: NamePrompt | undefined;
+  readonly onSubmit: (name: string) => void;
+}): ReactNode {
+  const [value, setValue] = useState("");
+  const [openKey, setOpenKey] = useState<string>();
+
+  const dialogKey =
+    prompt === undefined ? undefined : `${prompt.kind}:${prompt.targetPath}`;
+  if (dialogKey !== openKey) {
+    setOpenKey(dialogKey);
+    if (dialogKey !== undefined) setValue(prompt?.initialValue ?? "");
+  }
+
+  const title =
+    prompt?.kind === "file"
+      ? "New file"
+      : prompt?.kind === "folder"
+        ? "New folder"
+        : "Rename";
+
+  return (
+    <Dialog
+      open={prompt !== undefined}
+      onOpenChange={(next) => {
+        if (!next) onSubmit("");
+      }}
+    >
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {prompt?.kind === "rename"
+              ? "Enter the new name for this path."
+              : "Relative to the selected directory."}
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit(value);
+          }}
+        >
+          <Input
+            autoFocus
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            placeholder={
+              prompt?.kind === "folder" ? "folder-name" : "file-name.tsx"
+            }
+          />
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onSubmit("")}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={value.trim().length === 0}>
+              {prompt?.kind === "rename" ? "Rename" : "Create"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -142,7 +247,6 @@ type TreeItemProps = {
   readonly collapsed: ReadonlySet<string>;
   readonly selectedDir: string;
   readonly activePath: string | undefined;
-  readonly disabled: boolean;
   readonly onToggle: (path: string) => void;
   readonly onSelectDir: (path: string) => void;
   readonly onOpen: (path: string) => void;
@@ -157,7 +261,6 @@ function TreeItem({
   collapsed,
   selectedDir,
   activePath,
-  disabled,
   onToggle,
   onSelectDir,
   onOpen,
@@ -173,28 +276,33 @@ function TreeItem({
         <div
           className={cn(
             "group flex items-center gap-1 py-1 pr-2 text-sm",
-            "hover:bg-secondary/60",
-            selectedDir === node.path && "bg-secondary/40",
+            "hover:bg-ctp-crust",
+            selectedDir === node.path && "bg-ctp-crust/70",
           )}
           style={indent}
         >
           <button
             type="button"
-            className="flex min-w-0 flex-1 items-center gap-1 text-left"
+            className="text-ctp-text flex min-w-0 flex-1 items-center gap-1 text-left"
             onClick={() => {
               onToggle(node.path);
               onSelectDir(node.path);
             }}
           >
             {isCollapsed ? (
-              <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
+              <ChevronRight
+                className="text-ctp-overlay0 size-4 shrink-0"
+                aria-hidden="true"
+              />
             ) : (
-              <ChevronDown className="size-4 shrink-0" aria-hidden="true" />
+              <ChevronDown
+                className="text-ctp-overlay0 size-4 shrink-0"
+                aria-hidden="true"
+              />
             )}
             <span className="truncate">{node.name}</span>
           </button>
           <NodeActions
-            disabled={disabled}
             onRename={() => onRename(node.path)}
             onDelete={() => onDelete(node.path)}
           />
@@ -209,7 +317,6 @@ function TreeItem({
                 collapsed={collapsed}
                 selectedDir={selectedDir}
                 activePath={activePath}
-                disabled={disabled}
                 onToggle={onToggle}
                 onSelectDir={onSelectDir}
                 onOpen={onOpen}
@@ -229,14 +336,14 @@ function TreeItem({
       <div
         className={cn(
           "group flex items-center gap-1 py-1 pr-2 text-sm",
-          "hover:bg-secondary/60",
-          activePath === node.path && "bg-secondary/70",
+          "hover:bg-ctp-crust",
+          activePath === node.path && "bg-ctp-surface0/70",
         )}
         style={indent}
       >
         <button
           type="button"
-          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+          className="text-ctp-text flex min-w-0 flex-1 items-center gap-2 text-left"
           onClick={() => {
             onSelectDir(parentPath(node.path));
             onOpen(node.path);
@@ -245,18 +352,17 @@ function TreeItem({
           <span className="truncate">{node.name}</span>
           {badge === "dirty" ? (
             <span
-              className="size-1.5 shrink-0 rounded-full bg-amber-500"
+              className="bg-ctp-yellow size-1.5 shrink-0 rounded-full"
               aria-label="Unsaved changes"
             />
           ) : null}
           {badge === "conflict" ? (
-            <span className="text-destructive shrink-0 text-[10px] font-semibold uppercase">
+            <span className="text-ctp-red shrink-0 text-[10px] font-semibold uppercase">
               conflict
             </span>
           ) : null}
         </button>
         <NodeActions
-          disabled={disabled}
           onRename={() => onRename(node.path)}
           onDelete={() => onDelete(node.path)}
         />
@@ -266,21 +372,19 @@ function TreeItem({
 }
 
 function NodeActions({
-  disabled,
   onRename,
   onDelete,
 }: {
-  readonly disabled: boolean;
   readonly onRename: () => void;
   readonly onDelete: () => void;
 }): ReactNode {
   return (
     <span className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
-      <IconButton label="Rename" onClick={onRename} disabled={disabled}>
-        <Pencil className="size-3.5" aria-hidden="true" />
+      <IconButton label="Rename" onClick={onRename} disabled={false}>
+        <Pencil />
       </IconButton>
-      <IconButton label="Delete" onClick={onDelete} disabled={disabled}>
-        <Trash2 className="size-3.5" aria-hidden="true" />
+      <IconButton label="Delete" onClick={onDelete} disabled={false}>
+        <Trash2 />
       </IconButton>
     </span>
   );
@@ -300,8 +404,8 @@ function IconButton({
   return (
     <Button
       variant="ghost"
-      size="sm"
-      className="size-7 p-0"
+      size="icon-sm"
+      className="hover:bg-ctp-crust hover:text-ctp-text text-ctp-overlay0"
       aria-label={label}
       title={label}
       disabled={disabled}
